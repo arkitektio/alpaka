@@ -1,0 +1,5 @@
+fragment Room on Room {
+    id 
+    title
+    description
+}

@@ -1,0 +1,9 @@
+fragment Provider on Provider {
+  id
+  name
+  models {
+    id
+    modelId
+    features
+  }
+}

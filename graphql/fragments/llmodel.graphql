@@ -1,0 +1,12 @@
+fragment LLMModel on LLMModel {
+  id
+  provider {
+    id
+    name
+  }
+  features
+  embedderFor {
+    id
+    name
+  }
+}

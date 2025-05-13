@@ -1,0 +1,5 @@
+mutation Send($text: String!, $room: ID!, $agentId: String!, $attachStructures: [StructureInput!]){
+    send(input: {text: $text, room: $room, agentId: $agentId, attachStructures: $attachStructures}){
+        ...Message
+    }
+}

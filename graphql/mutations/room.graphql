@@ -1,0 +1,5 @@
+mutation CreateRoom($title: String, $description: String){
+    createRoom(input: {title: $title, description: $description}){
+        ...Room
+    }
+}

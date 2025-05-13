@@ -1,0 +1,6 @@
+fragment ChromaCollection on ChromaCollection {
+  id
+  name
+  description
+  createdAt
+}

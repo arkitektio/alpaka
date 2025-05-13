@@ -1,0 +1,18 @@
+fragment Message on Message {
+    id 
+    text
+    agent {
+        id
+        room {
+            id
+        }
+    }
+}
+
+fragment ListMessage on Message {
+    id 
+    text
+    agent {
+        id
+    }
+}
