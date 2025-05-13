@@ -7,7 +7,7 @@
 [![PyPI pyversions](https://img.shields.io/pypi/pyversions/akuire.svg)](https://pypi.python.org/pypi/akuire/)
 [![PyPI status](https://img.shields.io/pypi/status/akuire.svg)](https://pypi.python.org/pypi/akuire/)
 
-Alpaka is the arkitekt compüability layer around ollama and allows your arkitekt apps to connect to an ollama server
-
-
-
+Alpaka is the arkitekt compüability layer around ollama and allows your arkitekt apps to an 
+an open source LLM stack. Through it your arktiekt apps can use llmlite enabled models and
+most importanlly ollama models. Alpaka also lets you use chromadb and other vector databases
+to store and query your embeddings. 
