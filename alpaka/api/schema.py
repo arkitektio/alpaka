@@ -1,19 +1,19 @@
+from alpaka.funcs import execute, subscribe, aexecute, asubscribe
+from rath.scalars import IDCoercible, ID
 from typing import (
-    Iterator,
-    Tuple,
-    Optional,
     List,
+    AsyncIterator,
     Iterable,
     Literal,
-    AsyncIterator,
+    Optional,
     Any,
+    Tuple,
+    Iterator,
 )
+from pydantic import Field, BaseModel, ConfigDict
 from enum import Enum
-from alpaka.funcs import subscribe, aexecute, execute, asubscribe
-from pydantic import BaseModel, Field, ConfigDict
-from rath.scalars import ID
-from alpaka.rath import AlpakaRath
 from datetime import datetime
+from alpaka.rath import AlpakaRath
 
 
 class FeatureType(str, Enum):
@@ -492,6 +492,7 @@ class SendMutation(BaseModel):
         attach_structures: Optional[List[StructureInput]] = Field(
             alias="attachStructures", default=None
         )
+        model_config = ConfigDict(populate_by_name=True)
 
     class Meta:
         """Meta class for Send"""
@@ -510,6 +511,7 @@ class AddDocumentsToCollectionMutation(BaseModel):
         """Arguments for AddDocumentsToCollection"""
 
         input: AddDocumentsToCollectionInput
+        model_config = ConfigDict(populate_by_name=True)
 
     class Meta:
         """Meta class for AddDocumentsToCollection"""
@@ -526,6 +528,7 @@ class CreateCollectionMutation(BaseModel):
         """Arguments for CreateCollection"""
 
         input: ChromaCollectionInput
+        model_config = ConfigDict(populate_by_name=True)
 
     class Meta:
         """Meta class for CreateCollection"""
@@ -542,6 +545,7 @@ class EnsureCollectionMutation(BaseModel):
         """Arguments for EnsureCollection"""
 
         input: ChromaCollectionInput
+        model_config = ConfigDict(populate_by_name=True)
 
     class Meta:
         """Meta class for EnsureCollection"""
@@ -559,6 +563,7 @@ class CreateRoomMutation(BaseModel):
 
         title: Optional[str] = Field(default=None)
         description: Optional[str] = Field(default=None)
+        model_config = ConfigDict(populate_by_name=True)
 
     class Meta:
         """Meta class for CreateRoom"""
@@ -586,6 +591,7 @@ class PullMutation(BaseModel):
         """Arguments for Pull"""
 
         input: PullInput
+        model_config = ConfigDict(populate_by_name=True)
 
     class Meta:
         """Meta class for Pull"""
@@ -602,6 +608,7 @@ class CreateProviderMutation(BaseModel):
         """Arguments for CreateProvider"""
 
         input: ProviderInput
+        model_config = ConfigDict(populate_by_name=True)
 
     class Meta:
         """Meta class for CreateProvider"""
@@ -618,6 +625,7 @@ class ChatMutation(BaseModel):
         """Arguments for Chat"""
 
         input: ChatInput
+        model_config = ConfigDict(populate_by_name=True)
 
     class Meta:
         """Meta class for Chat"""
@@ -637,6 +645,7 @@ class QueryDocumentsQuery(BaseModel):
         query_texts: List[str] = Field(alias="queryTexts")
         n_results: Optional[int] = Field(alias="nResults", default=None)
         where: Optional[Any] = Field(default=None)
+        model_config = ConfigDict(populate_by_name=True)
 
     class Meta:
         """Meta class for QueryDocuments"""
@@ -653,6 +662,7 @@ class GetChromaCollectionQuery(BaseModel):
         """Arguments for GetChromaCollection"""
 
         id: ID
+        model_config = ConfigDict(populate_by_name=True)
 
     class Meta:
         """Meta class for GetChromaCollection"""
@@ -681,6 +691,7 @@ class SearchChromaCollectionQuery(BaseModel):
 
         search: Optional[str] = Field(default=None)
         values: Optional[List[ID]] = Field(default=None)
+        model_config = ConfigDict(populate_by_name=True)
 
     class Meta:
         """Meta class for SearchChromaCollection"""
@@ -698,6 +709,7 @@ class ListChromaCollectionsQuery(BaseModel):
 
         filter: Optional[ChromaCollectionFilter] = Field(default=None)
         pagination: Optional[OffsetPaginationInput] = Field(default=None)
+        model_config = ConfigDict(populate_by_name=True)
 
     class Meta:
         """Meta class for ListChromaCollections"""
@@ -714,6 +726,7 @@ class GetRoomQuery(BaseModel):
         """Arguments for GetRoom"""
 
         id: ID
+        model_config = ConfigDict(populate_by_name=True)
 
     class Meta:
         """Meta class for GetRoom"""
@@ -742,6 +755,7 @@ class SearchRoomsQuery(BaseModel):
 
         search: Optional[str] = Field(default=None)
         values: Optional[List[ID]] = Field(default=None)
+        model_config = ConfigDict(populate_by_name=True)
 
     class Meta:
         """Meta class for SearchRooms"""
@@ -759,6 +773,7 @@ class ListRoomsQuery(BaseModel):
 
         filter: Optional[RoomFilter] = Field(default=None)
         pagination: Optional[OffsetPaginationInput] = Field(default=None)
+        model_config = ConfigDict(populate_by_name=True)
 
     class Meta:
         """Meta class for ListRooms"""
@@ -775,6 +790,7 @@ class GetLLMModelQuery(BaseModel):
         """Arguments for GetLLMModel"""
 
         id: ID
+        model_config = ConfigDict(populate_by_name=True)
 
     class Meta:
         """Meta class for GetLLMModel"""
@@ -803,6 +819,7 @@ class SearchLLMModelsQuery(BaseModel):
 
         search: Optional[str] = Field(default=None)
         values: Optional[List[ID]] = Field(default=None)
+        model_config = ConfigDict(populate_by_name=True)
 
     class Meta:
         """Meta class for SearchLLMModels"""
@@ -820,6 +837,7 @@ class ListLLModelsQuery(BaseModel):
 
         filter: Optional[LLMModelFilter] = Field(default=None)
         pagination: Optional[OffsetPaginationInput] = Field(default=None)
+        model_config = ConfigDict(populate_by_name=True)
 
     class Meta:
         """Meta class for ListLLModels"""
@@ -847,6 +865,7 @@ class WatchRoomSubscription(BaseModel):
 
         room: ID
         agent_id: ID = Field(alias="agentId")
+        model_config = ConfigDict(populate_by_name=True)
 
     class Meta:
         """Meta class for WatchRoom"""
@@ -864,7 +883,7 @@ async def asend(
     """Send
 
 
-    Arguments:
+    Args:
         text (str): No description
         room (ID): No description
         agent_id (str): No description
@@ -898,7 +917,7 @@ def send(
     """Send
 
 
-    Arguments:
+    Args:
         text (str): No description
         room (ID): No description
         agent_id (str): No description
@@ -921,14 +940,14 @@ def send(
 
 
 async def aadd_documents_to_collection(
-    collection: ID,
+    collection: IDCoercible,
     documents: Iterable[DocumentInput],
     rath: Optional[AlpakaRath] = None,
 ) -> Tuple[Document, ...]:
     """AddDocumentsToCollection
 
 
-    Arguments:
+    Args:
         collection: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID. (required)
         documents: A document to put into the vector database (required) (list) (required)
         rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
@@ -946,14 +965,14 @@ async def aadd_documents_to_collection(
 
 
 def add_documents_to_collection(
-    collection: ID,
+    collection: IDCoercible,
     documents: Iterable[DocumentInput],
     rath: Optional[AlpakaRath] = None,
 ) -> Tuple[Document, ...]:
     """AddDocumentsToCollection
 
 
-    Arguments:
+    Args:
         collection: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID. (required)
         documents: A document to put into the vector database (required) (list) (required)
         rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
@@ -970,7 +989,7 @@ def add_documents_to_collection(
 
 async def acreate_collection(
     name: str,
-    embedder: ID,
+    embedder: IDCoercible,
     description: Optional[str] = None,
     is_public: Optional[bool] = None,
     rath: Optional[AlpakaRath] = None,
@@ -978,7 +997,7 @@ async def acreate_collection(
     """CreateCollection
 
 
-    Arguments:
+    Args:
         name: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required)
         embedder: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID. (required)
         description: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
@@ -1006,7 +1025,7 @@ async def acreate_collection(
 
 def create_collection(
     name: str,
-    embedder: ID,
+    embedder: IDCoercible,
     description: Optional[str] = None,
     is_public: Optional[bool] = None,
     rath: Optional[AlpakaRath] = None,
@@ -1014,7 +1033,7 @@ def create_collection(
     """CreateCollection
 
 
-    Arguments:
+    Args:
         name: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required)
         embedder: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID. (required)
         description: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
@@ -1040,7 +1059,7 @@ def create_collection(
 
 async def aensure_collection(
     name: str,
-    embedder: ID,
+    embedder: IDCoercible,
     description: Optional[str] = None,
     is_public: Optional[bool] = None,
     rath: Optional[AlpakaRath] = None,
@@ -1048,7 +1067,7 @@ async def aensure_collection(
     """EnsureCollection
 
 
-    Arguments:
+    Args:
         name: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required)
         embedder: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID. (required)
         description: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
@@ -1076,7 +1095,7 @@ async def aensure_collection(
 
 def ensure_collection(
     name: str,
-    embedder: ID,
+    embedder: IDCoercible,
     description: Optional[str] = None,
     is_public: Optional[bool] = None,
     rath: Optional[AlpakaRath] = None,
@@ -1084,7 +1103,7 @@ def ensure_collection(
     """EnsureCollection
 
 
-    Arguments:
+    Args:
         name: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required)
         embedder: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID. (required)
         description: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
@@ -1116,7 +1135,7 @@ async def acreate_room(
     """CreateRoom
 
 
-    Arguments:
+    Args:
         title (Optional[str], optional): No description.
         description (Optional[str], optional): No description.
         rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
@@ -1139,7 +1158,7 @@ def create_room(
     """CreateRoom
 
 
-    Arguments:
+    Args:
         title (Optional[str], optional): No description.
         description (Optional[str], optional): No description.
         rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
@@ -1156,7 +1175,7 @@ async def apull(model_name: str, rath: Optional[AlpakaRath] = None) -> PullMutat
     """Pull
 
 
-    Arguments:
+    Args:
         model_name: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required)
         rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
@@ -1172,7 +1191,7 @@ def pull(model_name: str, rath: Optional[AlpakaRath] = None) -> PullMutationPull
     """Pull
 
 
-    Arguments:
+    Args:
         model_name: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required)
         rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
@@ -1193,7 +1212,7 @@ async def acreate_provider(
     """CreateProvider
 
 
-    Arguments:
+    Args:
         description: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
         name: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required)
         api_key: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
@@ -1232,7 +1251,7 @@ def create_provider(
     """CreateProvider
 
 
-    Arguments:
+    Args:
         description: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
         name: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required)
         api_key: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
@@ -1259,7 +1278,7 @@ def create_provider(
 
 
 async def achat(
-    model: ID,
+    model: IDCoercible,
     messages: Iterable[ChatMessageInput],
     tools: Optional[Iterable[ToolInput]] = None,
     temperature: Optional[float] = None,
@@ -1268,7 +1287,7 @@ async def achat(
     """Chat
 
 
-    Arguments:
+    Args:
         model: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID. (required)
         messages: A chat message input (required) (list) (required)
         tools: A large language model function call (required) (list)
@@ -1295,7 +1314,7 @@ async def achat(
 
 
 def chat(
-    model: ID,
+    model: IDCoercible,
     messages: Iterable[ChatMessageInput],
     tools: Optional[Iterable[ToolInput]] = None,
     temperature: Optional[float] = None,
@@ -1304,7 +1323,7 @@ def chat(
     """Chat
 
 
-    Arguments:
+    Args:
         model: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID. (required)
         messages: A chat message input (required) (list) (required)
         tools: A large language model function call (required) (list)
@@ -1338,7 +1357,7 @@ async def aquery_documents(
     """QueryDocuments
 
 
-    Arguments:
+    Args:
         collection (ID): No description
         query_texts (List[str]): No description
         n_results (Optional[int], optional): No description.
@@ -1372,7 +1391,7 @@ def query_documents(
     """QueryDocuments
 
 
-    Arguments:
+    Args:
         collection (ID): No description
         query_texts (List[str]): No description
         n_results (Optional[int], optional): No description.
@@ -1400,7 +1419,7 @@ async def aget_chroma_collection(
     """GetChromaCollection
 
 
-    Arguments:
+    Args:
         id (ID): No description
         rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
@@ -1418,7 +1437,7 @@ def get_chroma_collection(
     """GetChromaCollection
 
 
-    Arguments:
+    Args:
         id (ID): No description
         rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
@@ -1436,7 +1455,7 @@ async def asearch_chroma_collection(
     """SearchChromaCollection
 
 
-    Arguments:
+    Args:
         search (Optional[str], optional): No description.
         values (Optional[List[ID]], optional): No description.
         rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
@@ -1459,7 +1478,7 @@ def search_chroma_collection(
     """SearchChromaCollection
 
 
-    Arguments:
+    Args:
         search (Optional[str], optional): No description.
         values (Optional[List[ID]], optional): No description.
         rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
@@ -1480,7 +1499,7 @@ async def alist_chroma_collections(
     """ListChromaCollections
 
 
-    Arguments:
+    Args:
         filter (Optional[ChromaCollectionFilter], optional): No description.
         pagination (Optional[OffsetPaginationInput], optional): No description.
         rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
@@ -1505,7 +1524,7 @@ def list_chroma_collections(
     """ListChromaCollections
 
 
-    Arguments:
+    Args:
         filter (Optional[ChromaCollectionFilter], optional): No description.
         pagination (Optional[OffsetPaginationInput], optional): No description.
         rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
@@ -1524,7 +1543,7 @@ async def aget_room(id: ID, rath: Optional[AlpakaRath] = None) -> Room:
     """GetRoom
 
 
-    Arguments:
+    Args:
         id (ID): No description
         rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
@@ -1538,7 +1557,7 @@ def get_room(id: ID, rath: Optional[AlpakaRath] = None) -> Room:
     """GetRoom
 
 
-    Arguments:
+    Args:
         id (ID): No description
         rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
@@ -1556,7 +1575,7 @@ async def asearch_rooms(
     """SearchRooms
 
 
-    Arguments:
+    Args:
         search (Optional[str], optional): No description.
         values (Optional[List[ID]], optional): No description.
         rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
@@ -1579,7 +1598,7 @@ def search_rooms(
     """SearchRooms
 
 
-    Arguments:
+    Args:
         search (Optional[str], optional): No description.
         values (Optional[List[ID]], optional): No description.
         rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
@@ -1600,7 +1619,7 @@ async def alist_rooms(
     """ListRooms
 
 
-    Arguments:
+    Args:
         filter (Optional[RoomFilter], optional): No description.
         pagination (Optional[OffsetPaginationInput], optional): No description.
         rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
@@ -1623,7 +1642,7 @@ def list_rooms(
     """ListRooms
 
 
-    Arguments:
+    Args:
         filter (Optional[RoomFilter], optional): No description.
         pagination (Optional[OffsetPaginationInput], optional): No description.
         rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
@@ -1640,7 +1659,7 @@ async def aget_llm_model(id: ID, rath: Optional[AlpakaRath] = None) -> LLMModel:
     """GetLLMModel
 
 
-    Arguments:
+    Args:
         id (ID): No description
         rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
@@ -1654,7 +1673,7 @@ def get_llm_model(id: ID, rath: Optional[AlpakaRath] = None) -> LLMModel:
     """GetLLMModel
 
 
-    Arguments:
+    Args:
         id (ID): No description
         rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
@@ -1672,7 +1691,7 @@ async def asearch_llm_models(
     """SearchLLMModels
 
 
-    Arguments:
+    Args:
         search (Optional[str], optional): No description.
         values (Optional[List[ID]], optional): No description.
         rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
@@ -1695,7 +1714,7 @@ def search_llm_models(
     """SearchLLMModels
 
 
-    Arguments:
+    Args:
         search (Optional[str], optional): No description.
         values (Optional[List[ID]], optional): No description.
         rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
@@ -1716,7 +1735,7 @@ async def alist_ll_models(
     """ListLLModels
 
 
-    Arguments:
+    Args:
         filter (Optional[LLMModelFilter], optional): No description.
         pagination (Optional[OffsetPaginationInput], optional): No description.
         rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
@@ -1739,7 +1758,7 @@ def list_ll_models(
     """ListLLModels
 
 
-    Arguments:
+    Args:
         filter (Optional[LLMModelFilter], optional): No description.
         pagination (Optional[OffsetPaginationInput], optional): No description.
         rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
@@ -1758,7 +1777,7 @@ async def awatch_room(
     """WatchRoom
 
 
-    Arguments:
+    Args:
         room (ID): No description
         agent_id (ID): No description
         rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
@@ -1778,7 +1797,7 @@ def watch_room(
     """WatchRoom
 
 
-    Arguments:
+    Args:
         room (ID): No description
         agent_id (ID): No description
         rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
