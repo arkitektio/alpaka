@@ -21,7 +21,7 @@ docker_compose_file = os.path.join(project_path, "docker-compose.yml")
 
 
 async def token_loader() -> str:
-    """Load a static token. that is defined in the alpaka.yaml file. THIS IS NOT SECURE."""
+    """Load a static token. that is defined in the alpaka.yaml file."""
     return "test"
 
 
