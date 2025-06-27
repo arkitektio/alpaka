@@ -1,6 +1,9 @@
 # CHANGELOG
 
 
+## v0.4.0 (2025-06-27)
+
+
 ## v0.3.0 (2025-06-14)
 
 ### Bug Fixes
@@ -18,6 +21,9 @@
 
 - Add pytest
   ([`da3da1c`](https://github.com/arkitektio/alpaka/commit/da3da1c2e8fce4ab35c20a4070de0612553ef3c0))
+
+- Updated arkitekt stack
+  ([`1c52b86`](https://github.com/arkitektio/alpaka/commit/1c52b86ab38e51c7ed698f0bbeef660f24182482))
 
 
 ## v0.2.0 (2025-05-13)
