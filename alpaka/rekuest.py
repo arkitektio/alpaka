@@ -21,7 +21,7 @@ structure_reg.register_as_structure(
 
 structure_reg.register_as_structure(
     LLMModel,
-    identifier="@alpaka/llm_model",
+    identifier="@alpaka/llmmodel",
     aexpand=aget_llm_model,
     ashrink=id_shrink,
     default_widget=SearchWidget(

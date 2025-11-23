@@ -3,6 +3,7 @@ type Query {
   providers(filters: ProviderFilter, pagination: OffsetPaginationInput): [Provider!]!
   llmModels(filters: LLMModelFilter, pagination: OffsetPaginationInput): [LLMModel!]!
   chromaCollections(filters: ChromaCollectionFilter, pagination: OffsetPaginationInput): [ChromaCollection!]!
+  roomStats(filters: RoomFilter = null): RoomStats!
   room(id: ID!): Room!
   documents(collection: ID!, queryTexts: [String!] = null, nResults: Int = 3, where: JSON = null): [Document!]!
   llmModel(id: ID!): LLMModel!
@@ -10,7 +11,7 @@ type Query {
   provider(id: ID!): Provider!
 }
 
-"""Room(id, title, description, creator)"""
+"""Room(id, title, description, creator, organization, created_at)"""
 type Room {
   id: ID!
 
@@ -19,6 +20,9 @@ type Room {
   description: String!
   messages(filters: MessageFilter, pagination: OffsetPaginationInput): [Message!]!
   agents(pagination: OffsetPaginationInput): [Agent!]!
+
+  """The organization this room belongs to"""
+  organization: Organization!
 }
 
 """Message represent the message of an agent on a room"""
@@ -69,7 +73,13 @@ input OffsetPaginationInput {
   limit: Int
 }
 
-"""Room(id, title, description, creator)"""
+"""An Organization model to represent an organization in the system"""
+type Organization {
+  id: String!
+  slug: String!
+}
+
+"""Room(id, title, description, creator, organization, created_at)"""
 input RoomFilter {
   search: String
   ids: [ID!]
@@ -87,6 +97,9 @@ type Provider {
   apiBase: String!
   additionalConfig: JSON!
   models(filters: LLMModelFilter, pagination: OffsetPaginationInput): [LLMModel!]!
+
+  """The kind of the provider"""
+  kind: ProviderKind!
 }
 
 """
@@ -109,6 +122,12 @@ type LLMModel {
 
   """The string to use for the LLM model"""
   llmString: String!
+
+  """The input modalities"""
+  inputModalities: [InputModality!]!
+
+  """The input modalities"""
+  outputModalities: [InputModality!]!
 }
 
 """The type of the thinking block"""
@@ -132,7 +151,7 @@ type ChromaCollection {
 type User {
   sub: String!
   preferredUsername: String!
-  roles: [String!]!
+  activeOrganization: Organization
 }
 
 """Filter for ChromaCollection"""
@@ -145,14 +164,47 @@ input ChromaCollectionFilter {
   DISTINCT: Boolean
 }
 
+"""Modalities"""
+enum InputModality {
+  IMAGE
+  TEXT
+}
+
 """Filter for LLMModel"""
 input LLMModelFilter {
   ids: [ID!]
   search: String
+  inputModalities: [InputModality!]
+  outputModalities: [InputModality!]
   AND: LLMModelFilter
   OR: LLMModelFilter
   NOT: LLMModelFilter
   DISTINCT: Boolean
+}
+
+"""The kind of LLM provider"""
+enum ProviderKind {
+  OPENAI
+  ANTHROPIC
+  GOOGLE
+  COHERE
+  MISTRAL
+  HUGGINGFACE
+  OLLAMA
+  AZURE
+  AWS
+  VERTEX_AI
+  PALM
+  REPLICATE
+  TOGETHER_AI
+  ANYSCALE
+  FIREWORKS_AI
+  DEEPINFRA
+  PERPLEXITY
+  GROQ
+  CUSTOM
+  UNKNOWN
+  OPENROUTER
 }
 
 """Filter for Provider"""
@@ -163,6 +215,58 @@ input ProviderFilter {
   OR: ProviderFilter
   NOT: ProviderFilter
   DISTINCT: Boolean
+}
+
+type RoomStats {
+  """Total number of items in the selection"""
+  count: Int!
+
+  """Number of distinct values for the field"""
+  distinctCount(field: RoomField!): Int!
+
+  """Maximum"""
+  max(field: RoomField!): Float
+
+  """Minimum"""
+  min(field: RoomField!): Float
+
+  """Average"""
+  avg(field: RoomField!): Float
+
+  """Sum"""
+  sum(field: RoomField!): Float
+
+  """Time-bucketed stats over a datetime field."""
+  series(field: RoomField!, timestampField: RoomTimestampField!, by: Granularity!): [TimeBucket!]!
+}
+
+"""Numeric/aggregatable fields of Room"""
+enum RoomField {
+  CREATED_AT
+}
+
+type TimeBucket {
+  ts: DateTime!
+  count: Int!
+  distinctCount: Int!
+  max: Float
+  min: Float
+  avg: Float
+  sum: Float
+}
+
+"""Datetime fields of Room for bucketing"""
+enum RoomTimestampField {
+  CREATED_AT
+}
+
+enum Granularity {
+  HOUR
+  DAY
+  WEEK
+  MONTH
+  QUARTER
+  YEAR
 }
 
 type Document {
@@ -179,9 +283,12 @@ type Mutation {
   createRoom(input: CreateRoomInput!): Room!
   deleteRoom(input: DeleteRoomInput!): ID!
   createProvider(input: ProviderInput!): Provider!
+  deleteProvider(input: DeleteProviderInput!): ID!
   send(input: SendMessageInput!): Message!
   chat(input: ChatInput!): ChatResponse!
   pull(input: PullInput!): OllamaPullResult!
+  generateImage(input: ImageInput!): ImageReponse!
+  useModelFor(input: UseModelForInput!): DefaultUse!
   createCollection(input: ChromaCollectionInput!): ChromaCollection!
   ensureCollection(input: ChromaCollectionInput!): ChromaCollection!
   deleteCollection(input: AddDocumentsToCollectionInput!): ID!
@@ -200,10 +307,15 @@ input DeleteRoomInput {
 """A large language model to change with"""
 input ProviderInput {
   description: String = null
-  name: String!
+  name: String = null
+  kind: ProviderKind!
   apiKey: String = null
   apiBase: String = null
   additionalConfig: JSON = null
+}
+
+input DeleteProviderInput {
+  id: ID!
 }
 
 input SendMessageInput {
@@ -296,7 +408,7 @@ type Usage {
 
 """A chat message input"""
 input ChatInput {
-  model: ID!
+  model: ID = null
   messages: [ChatMessageInput!]!
   tools: [ToolInput!] = null
   temperature: Float = null
@@ -345,6 +457,34 @@ type OllamaPullResult {
 
 input PullInput {
   modelName: String!
+}
+
+type ImageReponse {
+  image: Base64EncodedString!
+}
+
+"""
+Base64EncodedString represents an untyped options object returned by the Dask Gateway API.
+"""
+scalar Base64EncodedString
+
+"""The image"""
+input ImageInput {
+  model: ID = null
+  description: String!
+}
+
+"""A default use for a model"""
+type DefaultUse {
+  id: ID!
+  model: LLMModel!
+  kind: String!
+}
+
+"""The input for using a model for a specific task"""
+input UseModelForInput {
+  model: ID!
+  kind: String!
 }
 
 input ChromaCollectionInput {

@@ -26,7 +26,8 @@
                 "Callback": "str",
                 "Any": "typing.Any",
                 "JSON": "typing.Any",
-                "ID": "rath.scalars.ID"
+                "ID": "rath.scalars.ID",
+                "Base64EncodedString": "str"
             },
             "freeze": {
                 "enabled": true,
@@ -57,9 +58,14 @@
                 "include": null
             },
             "skip_forwards": false,
-            "additional_bases": {},
+            "additional_bases": {
+                "ChatResponse": [
+                    "alpaka.traits.ChatResponseTraits"
+                ]
+            },
             "additional_config": {},
             "force_plugin_order": true,
+            "omited_document_rules": [],
             "parsers": [],
             "plugins": [
                 {
