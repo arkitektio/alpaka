@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.5.0 (2025-11-23)
+
+### Features
+
+- Add more chat
+  ([`d81f110`](https://github.com/arkitektio/alpaka/commit/d81f110c386666e5ac8fa114196d89e1b5947654))
+
+
 ## v0.4.0 (2025-06-27)
 
 
