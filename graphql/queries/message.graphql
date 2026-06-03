@@ -1,0 +1,20 @@
+query GetMessage($id: ID!){
+    message(id: $id){
+        ...Message
+    }
+}
+query SearchMessages($search: String, $values: [ID!]) {
+  options: messages(
+    filters: { search: $search, ids: $values }
+    pagination: { limit: 10 }
+  ) {
+    value: id
+    label: title
+  }
+}
+
+query ListMessages($filter: MessageFilter, $pagination: OffsetPaginationInput) {
+  messages(filters: $filter, pagination: $pagination) {
+    ...ListMessage
+  }
+}

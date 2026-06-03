@@ -1,5 +1,5 @@
 {
-    "schema_url": "http://localhost/alpaka/graphql",
+    "schema_url": "http://jhnnsrs-lab/alpaka/schema",
     "documents": "graphql/alpaka/*/**.graphql",
     "extensions": {
         "turms": {

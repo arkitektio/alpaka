@@ -7,6 +7,17 @@ fragment Message on Message {
             id
         }
     }
+    room {
+        id
+        title
+    }
+    before {
+        ...ListMessage
+    }
+    attachedStructures {
+        object
+        identifier
+    }
 }
 
 fragment ListMessage on Message {
@@ -14,5 +25,9 @@ fragment ListMessage on Message {
     text
     agent {
         id
+    }
+    attachedStructures {
+        object
+        identifier
     }
 }

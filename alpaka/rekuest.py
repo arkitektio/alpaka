@@ -4,6 +4,9 @@ from alpaka.api.schema import (
     Room,
     aget_room,
     LLMModel,
+    Message,
+    aget_message,
+    SearchMessagesQuery,
     aget_llm_model,
     SearchRoomsQuery,
     SearchLLMModelsQuery,
@@ -27,4 +30,12 @@ structure_reg.register_as_structure(
     default_widget=SearchWidget(
         query=SearchLLMModelsQuery.Meta.document, ward="alpaka"
     ),
+)
+
+structure_reg.register_as_structure(
+    Message,
+    identifier="@alpaka/message",
+    aexpand=aget_message,
+    ashrink=id_shrink,
+    default_widget=SearchWidget(query=SearchMessagesQuery.Meta.document, ward="alpaka"),
 )
