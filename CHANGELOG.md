@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.7.0 (2026-06-03)
+
+### Features
+
+- Adapted to new api
+  ([`da12fd0`](https://github.com/arkitektio/alpaka/commit/da12fd0f9d6013e78a257c0b24f3f148b690acb2))
+
+
 ## v0.6.0 (2026-04-02)
 
 
