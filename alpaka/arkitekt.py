@@ -3,11 +3,13 @@ import os
 from alpaka.alpaka import Alpaka
 from alpaka.rath import AlpakaRath, AlpakaLinkComposition
 from fakts_next.contrib.rath.auth import FaktsAuthLink
+from rath.links.compose import compose
 from rath.links.split import SplitLink
 from fakts_next.contrib.rath.aiohttp import FaktsAIOHttpLink
 from fakts_next.contrib.rath.graphql_ws import FaktsGraphQLWSLink
 from graphql import OperationType
 from fakts_next import Fakts
+from rekuest_next.links.context import ContextLink
 
 
 from arkitekt_next.service_registry import (
@@ -31,11 +33,16 @@ class AlpakaService(BaseArkitektService):
     def build_service(self, fakts: Fakts, params: Params):
         return Alpaka(
             rath=AlpakaRath(
-                link=AlpakaLinkComposition(
-                    auth=FaktsAuthLink(fakts=fakts),
-                    split=SplitLink(
+                link=compose(
+                    FaktsAuthLink(
+                        fakts=fakts,
+                    ),
+                    ContextLink(),
+                    SplitLink(
                         left=FaktsAIOHttpLink(
-                            fakts_group="alpaka", fakts=fakts, endpoint_url="FAKE_URL"
+                            fakts_group="alpaka",
+                            fakts=fakts,
+                            endpoint_url="FAKE_URL",
                         ),
                         right=FaktsGraphQLWSLink(
                             fakts_group="alpaka",
@@ -44,7 +51,7 @@ class AlpakaService(BaseArkitektService):
                         ),
                         split=lambda o: o.node.operation != OperationType.SUBSCRIPTION,
                     ),
-                )
+                ),
             )
         )
 
