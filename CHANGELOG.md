@@ -1,6 +1,14 @@
 # CHANGELOG
 
 
+## v0.7.1 (2026-06-05)
+
+### Bug Fixes
+
+- Compose instead of compositoin
+  ([`68ee041`](https://github.com/arkitektio/alpaka/commit/68ee0417357ac9f1947d71e85a24e2c8359a4db5))
+
+
 ## v0.7.0 (2026-06-03)
 
 ### Features
