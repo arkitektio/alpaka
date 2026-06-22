@@ -1,6 +1,6 @@
 {
     "schema_url": "http://jhnnsrs-lab/alpaka/schema",
-    "documents": "graphql/alpaka/*/**.graphql",
+    "documents": "graphql/**/**.graphql",
     "extensions": {
         "turms": {
             "pydantic_version": "v2",
@@ -11,7 +11,7 @@
             "dump_schema": true,
             "schema_name": "schema.graphql",
             "generated_name": "schema.py",
-            "documents": "graphql/alpaka/*/**.graphql",
+            "documents": "graphql/**/**.graphql",
             "verbose": false,
             "exit_on_error": true,
             "allow_introspection": true,
@@ -29,6 +29,12 @@
                 "ID": "rath.scalars.ID",
                 "Base64EncodedString": "str"
             },
+            "coercible_scalars": {},
+            "graphql_default_class": null,
+            "deprecated_class": null,
+            "document_field_metadata": true,
+            "unset_type_class": null,
+            "unset_instance": null,
             "freeze": {
                 "enabled": true,
                 "types": [
@@ -126,11 +132,7 @@
                     ]
                 }
             ],
-            "processors": [
-                {
-                    "type": "turms.processors.black.BlackProcessor"
-                }
-            ],
+            "processors": [],
             "stylers": [
                 {
                     "type": "turms.stylers.default.DefaultStyler"

@@ -4,10 +4,15 @@ query GetLLMModel($id: ID!) {
   }
 }
 
-query SearchLLMModels($search: String, $values: [ID!]) {
+query SearchLLMModels(
+  $search: String
+  $values: [ID!]
+  $limit: Int = 10
+  $offset: Int = 0
+) {
   options: llmModels(
     filters: { search: $search, ids: $values }
-    pagination: { limit: 10 }
+    pagination: { limit: $limit, offset: $offset }
   ) {
     value: id
     label: modelId
@@ -16,9 +21,10 @@ query SearchLLMModels($search: String, $values: [ID!]) {
 
 query ListLLModels(
   $filter: LLMModelFilter
+  $order: [LLMModelOrder!]
   $pagination: OffsetPaginationInput
 ) {
-  llmModels(filters: $filter, pagination: $pagination) {
+  llmModels(filters: $filter, ordering: $order, pagination: $pagination) {
     ...LLMModel
   }
 }

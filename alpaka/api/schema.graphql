@@ -9,6 +9,20 @@ type Agent {
   room: Room!
 }
 
+"""Agent(id, room, name, client, user)"""
+input AgentFilter {
+  AND: AgentFilter
+  OR: AgentFilter
+  NOT: AgentFilter
+  DISTINCT: Boolean
+  ids: [ID!]
+  search: String
+}
+
+input AgentOrder @oneOf {
+  name: Ordering
+}
+
 """
 Base64EncodedString represents an untyped options object returned by the Dask Gateway API.
 """
@@ -71,12 +85,12 @@ type ChromaCollection {
 
 """Filter for ChromaCollection"""
 input ChromaCollectionFilter {
-  search: String
-  ids: [ID!]
   AND: ChromaCollectionFilter
   OR: ChromaCollectionFilter
   NOT: ChromaCollectionFilter
   DISTINCT: Boolean
+  ids: [ID!]
+  search: String
 }
 
 input ChromaCollectionInput {
@@ -84,6 +98,11 @@ input ChromaCollectionInput {
   embedder: ID!
   description: String = null
   isPublic: Boolean = false
+}
+
+input ChromaCollectionOrder @oneOf {
+  name: Ordering
+  createdAt: Ordering
 }
 
 input CreateRoomInput {
@@ -177,6 +196,8 @@ type ImageReponse {
 enum InputModality {
   IMAGE
   TEXT
+  AUDIO
+  VIDEO
 }
 
 """
@@ -195,7 +216,7 @@ type LLMModel {
   features: [FeatureType!]!
 
   """The collections that can be embedded with this model"""
-  embedderFor(filters: ChromaCollectionFilter, pagination: OffsetPaginationInput): [ChromaCollection!]!
+  embedderFor(filters: ChromaCollectionFilter, ordering: [ChromaCollectionOrder!]! = [], pagination: OffsetPaginationInput): [ChromaCollection!]!
 
   """The string to use for the LLM model"""
   llmString: String!
@@ -209,20 +230,24 @@ type LLMModel {
 
 """Filter for LLMModel"""
 input LLMModelFilter {
-  ids: [ID!]
-  search: String
-  inputModalities: [InputModality!]
-  outputModalities: [InputModality!]
   AND: LLMModelFilter
   OR: LLMModelFilter
   NOT: LLMModelFilter
   DISTINCT: Boolean
+  ids: [ID!]
+  search: String
+  inputModalities: [InputModality!]
+  outputModalities: [InputModality!]
+}
+
+input LLMModelOrder @oneOf {
+  label: Ordering
+  modelId: Ordering
 }
 
 """Message represent the message of an agent on a room"""
 type Message {
   id: ID!
-  title: String!
 
   """A clear text representation of the rich comment"""
   text: String!
@@ -237,16 +262,17 @@ type Message {
   """The time this comment got created"""
   createdAt: DateTime!
   before(filters: MessageFilter = null, pagination: OffsetPaginationInput = null): [Message!]!
+  title: String!
 }
 
 """Message represent the message of an agent on a room"""
 input MessageFilter {
-  ids: [ID!]
-  search: String
   AND: MessageFilter
   OR: MessageFilter
   NOT: MessageFilter
   DISTINCT: Boolean
+  ids: [ID!]
+  search: String
 }
 
 input MessageOrder @oneOf {
@@ -290,7 +316,7 @@ enum Ordering {
 
 """An Organization model to represent an organization in the system"""
 type Organization {
-  id: String!
+  id: ID!
   slug: String!
 }
 
@@ -301,7 +327,7 @@ type Provider {
   apiKey: String!
   apiBase: String!
   additionalConfig: JSON!
-  models(filters: LLMModelFilter, pagination: OffsetPaginationInput): [LLMModel!]!
+  models(filters: LLMModelFilter, ordering: [LLMModelOrder!]! = [], pagination: OffsetPaginationInput): [LLMModel!]!
 
   """The kind of the provider"""
   kind: ProviderKind!
@@ -309,12 +335,12 @@ type Provider {
 
 """Filter for Provider"""
 input ProviderFilter {
-  search: String
-  ids: [ID!]
   AND: ProviderFilter
   OR: ProviderFilter
   NOT: ProviderFilter
   DISTINCT: Boolean
+  ids: [ID!]
+  search: String
 }
 
 """A large language model to change with"""
@@ -352,17 +378,24 @@ enum ProviderKind {
   OPENROUTER
 }
 
+input ProviderOrder @oneOf {
+  name: Ordering
+  createdAt: Ordering
+}
+
 input PullInput {
   modelName: String!
 }
 
 type Query {
-  rooms(filters: RoomFilter, pagination: OffsetPaginationInput): [Room!]!
+  _entities(representations: [_Any!]!): [_Entity]!
+  _service: _Service!
+  rooms(filters: RoomFilter, ordering: [RoomOrder!]! = [], pagination: OffsetPaginationInput): [Room!]!
   message(id: ID!): Message!
   messages(filters: MessageFilter, ordering: [MessageOrder!]! = [], pagination: OffsetPaginationInput): [Message!]!
-  providers(filters: ProviderFilter, pagination: OffsetPaginationInput): [Provider!]!
-  llmModels(filters: LLMModelFilter, pagination: OffsetPaginationInput): [LLMModel!]!
-  chromaCollections(filters: ChromaCollectionFilter, pagination: OffsetPaginationInput): [ChromaCollection!]!
+  providers(filters: ProviderFilter, ordering: [ProviderOrder!]! = [], pagination: OffsetPaginationInput): [Provider!]!
+  llmModels(filters: LLMModelFilter, ordering: [LLMModelOrder!]! = [], pagination: OffsetPaginationInput): [LLMModel!]!
+  chromaCollections(filters: ChromaCollectionFilter, ordering: [ChromaCollectionOrder!]! = [], pagination: OffsetPaginationInput): [ChromaCollection!]!
   roomStats(filters: RoomFilter = null): RoomStats!
   room(id: ID!): Room!
   documents(collection: ID!, queryTexts: [String!] = null, nResults: Int = 3, where: JSON = null): [Document!]!
@@ -388,7 +421,7 @@ type Room {
   title: String!
   description: String!
   messages(filters: MessageFilter, ordering: [MessageOrder!]! = [], pagination: OffsetPaginationInput): [Message!]!
-  agents(pagination: OffsetPaginationInput): [Agent!]!
+  agents(filters: AgentFilter, ordering: [AgentOrder!]! = [], pagination: OffsetPaginationInput): [Agent!]!
 
   """The organization this room belongs to"""
   organization: Organization!
@@ -407,13 +440,18 @@ enum RoomField {
 
 """Room(id, title, description, creator, organization, created_at)"""
 input RoomFilter {
-  search: String
-  ids: [ID!]
-  talkingAbout: StructureInput
   AND: RoomFilter
   OR: RoomFilter
   NOT: RoomFilter
   DISTINCT: Boolean
+  ids: [ID!]
+  search: String
+  talkingAbout: StructureInput
+}
+
+input RoomOrder @oneOf {
+  createdAt: Ordering
+  title: Ordering
 }
 
 type RoomStats {
@@ -531,7 +569,16 @@ input UseModelForInput {
 
 """A reflection on the real User"""
 type User {
+  id: ID!
   sub: String!
   preferredUsername: String!
   activeOrganization: Organization
+}
+
+scalar _Any
+
+union _Entity = Message | Organization | User
+
+type _Service {
+  sdl: String!
 }

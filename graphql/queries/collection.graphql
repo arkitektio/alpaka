@@ -4,10 +4,15 @@ query GetChromaCollection($id: ID!) {
   }
 }
 
-query SearchChromaCollection($search: String, $values: [ID!]) {
+query SearchChromaCollection(
+  $search: String
+  $values: [ID!]
+  $limit: Int = 10
+  $offset: Int = 0
+) {
   options: chromaCollections(
     filters: { search: $search, ids: $values }
-    pagination: { limit: 10 }
+    pagination: { limit: $limit, offset: $offset }
   ) {
     value: id
     label: name
@@ -16,9 +21,10 @@ query SearchChromaCollection($search: String, $values: [ID!]) {
 
 query ListChromaCollections(
   $filter: ChromaCollectionFilter
+  $order: [ChromaCollectionOrder!]
   $pagination: OffsetPaginationInput
 ) {
-  chromaCollections(filters: $filter, pagination: $pagination) {
+  chromaCollections(filters: $filter, ordering: $order, pagination: $pagination) {
     ...ChromaCollection
   }
 }
