@@ -1,11 +1,20 @@
-from rath.scalars import ID, IDCoercible
+from typing import List, Iterable, Annotated, Tuple, Union, Dict, Optional, Iterator, Any, AsyncIterator, Literal
+from alpaka.funcs import execute, subscribe, asubscribe, aexecute
 from pydantic import ConfigDict, BaseModel, Field
-from typing import Any, AsyncIterator, Dict, Iterator, Annotated, Literal, Tuple, Iterable, Optional, Union, List
-from alpaka.funcs import aexecute, asubscribe, subscribe, execute
 from alpaka.rath import AlpakaRath
+from rath.scalars import IDCoercible, ID
+from enum import Enum
 from datetime import datetime
 from alpaka.traits import ChatResponseTraits
-from enum import Enum
+
+class GraphQLDefault:
+    """Records a GraphQL field schema default value. The client omits the field so the server applies its own default; this preserves the value for introspection."""
+
+    def __init__(self, value):
+        self.value = value
+
+    def __repr__(self):
+        return 'GraphQLDefault(' + repr(self.value) + ')'
 
 class UnsetType:
     """Sentinel for arguments the caller did not provide. Such fields are omitted on serialization so the GraphQL server applies its own default."""
@@ -22,15 +31,6 @@ class UnsetType:
     def __bool__(self):
         return False
 UNSET = UnsetType()
-
-class GraphQLDefault:
-    """Records a GraphQL field schema default value. The client omits the field so the server applies its own default; this preserves the value for introspection."""
-
-    def __init__(self, value):
-        self.value = value
-
-    def __repr__(self):
-        return 'GraphQLDefault(' + repr(self.value) + ')'
 
 class FeatureType(str, Enum):
     """The type of the thinking block"""
