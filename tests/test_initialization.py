@@ -10,7 +10,7 @@ from alpaka.api.schema import (
     OffsetPaginationInput,
     Ordering,
     RoomFilter,
-    RoomOrder,
+    RoomOrderCreatedAt,
 )
 
 
@@ -33,8 +33,8 @@ def test_ordering_enum_values() -> None:
 
 
 def test_room_order_uses_enum() -> None:
-    """``RoomOrder`` accepts an ``Ordering`` and serialises via its alias."""
-    order = RoomOrder(created_at=Ordering.DESC)
+    """``RoomOrderCreatedAt`` (a ``RoomOrder`` @oneOf variant) accepts an ``Ordering`` and serialises via its alias."""
+    order = RoomOrderCreatedAt(created_at=Ordering.DESC)
     dumped = order.model_dump(by_alias=True, exclude_none=True)
     assert dumped == {"createdAt": "DESC"}
 

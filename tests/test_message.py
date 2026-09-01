@@ -65,13 +65,13 @@ def test_send_message_with_attached_structure(deployed_app: DeployedAlpaka) -> N
         room=room.id,
         agent_id="test-agent",
         attach_structures=[
-            StructureInput(identifier="@test/item", object="1"),
+            StructureInput(identifier="@test/item", object=1),
         ],
     )
     assert len(message.attached_structures) == 1
     structure = message.attached_structures[0]
     assert structure.identifier == "@test/item"
-    assert structure.object == "1"
+    assert structure.object == 1
 
 
 @pytest.mark.integration

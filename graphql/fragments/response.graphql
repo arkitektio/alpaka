@@ -11,6 +11,12 @@ fragment ChatResponse on ChatResponse {
   choices {
     index
     finishReason
+    reasoningContent
+    thinkingBlocks {
+      type
+      thinking
+      signature
+    }
     message {
       role
       content

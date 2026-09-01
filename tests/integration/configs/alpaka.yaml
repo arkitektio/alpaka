@@ -16,6 +16,9 @@ django:
   secret_key: ab94ec351412c22324b2f635e0d6b9dd
 my_script_name: ""
 authentikate:
+  # authentikate 4.0 requires an audience; "*" accepts a token minted for any
+  # service, which is fine for the throwaway test stack.
+  audience: "*"
   issuers: []
   static_tokens:
     test:

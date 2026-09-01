@@ -1,11 +1,11 @@
-from typing import List, Iterable, Annotated, Tuple, Union, Dict, Optional, Iterator, Any, AsyncIterator, Literal
-from alpaka.funcs import execute, subscribe, asubscribe, aexecute
-from pydantic import ConfigDict, BaseModel, Field
+from alpaka.funcs import aexecute, asubscribe, execute, subscribe
 from alpaka.rath import AlpakaRath
-from rath.scalars import IDCoercible, ID
-from enum import Enum
-from datetime import datetime
 from alpaka.traits import ChatResponseTraits
+from datetime import datetime
+from enum import Enum
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
+from rath.scalars import ID, IDCoercible
+from typing import Annotated, Any, AsyncIterator, Iterable, Iterator, Literal
 
 class GraphQLDefault:
     """Records a GraphQL field schema default value. The client omits the field so the server applies its own default; this preserves the value for introspection."""
@@ -33,17 +33,19 @@ class UnsetType:
 UNSET = UnsetType()
 
 class FeatureType(str, Enum):
-    """The type of the thinking block"""
+    """A capability a model supports"""
     EMBEDDING = 'EMBEDDING'
-    CHATTING = 'CHATTING'
     CHAT = 'CHAT'
+    VISION = 'VISION'
+    __str__ = str.__str__
 
-class InputModality(str, Enum):
-    """Modalities"""
+class Modality(str, Enum):
+    """A modality a model can read or emit"""
     IMAGE = 'IMAGE'
     TEXT = 'TEXT'
     AUDIO = 'AUDIO'
     VIDEO = 'VIDEO'
+    __str__ = str.__str__
 
 class Ordering(str, Enum):
     """No documentation"""
@@ -53,6 +55,7 @@ class Ordering(str, Enum):
     DESC = 'DESC'
     DESC_NULLS_FIRST = 'DESC_NULLS_FIRST'
     DESC_NULLS_LAST = 'DESC_NULLS_LAST'
+    __str__ = str.__str__
 
 class ProviderKind(str, Enum):
     """The kind of LLM provider"""
@@ -77,6 +80,7 @@ class ProviderKind(str, Enum):
     CUSTOM = 'CUSTOM'
     UNKNOWN = 'UNKNOWN'
     OPENROUTER = 'OPENROUTER'
+    __str__ = str.__str__
 
 class Role(str, Enum):
     """The type of the message sender"""
@@ -85,66 +89,84 @@ class Role(str, Enum):
     ASSISTANT = 'ASSISTANT'
     TOOL = 'TOOL'
     FUNCTION = 'FUNCTION'
+    __str__ = str.__str__
+
+class ThinkingBlockType(str, Enum):
+    """The type of the thinking block"""
+    THINKING = 'THINKING'
+    __str__ = str.__str__
 
 class ToolType(str, Enum):
     """The type of the tool"""
     FUNCTION = 'FUNCTION'
+    __str__ = str.__str__
 
 class AddDocumentsToCollectionInput(BaseModel):
-    """No documentation"""
+    """Documents to add to an existing collection"""
     collection: ID
-    documents: Tuple['DocumentInput', ...]
+    documents: tuple['DocumentInput', ...]
     model_config = ConfigDict(frozen=True, extra='forbid', populate_by_name=True, use_enum_values=True)
 
 class ChatInput(BaseModel):
-    """A chat message input"""
-    model: Optional[ID] = None
-    messages: Tuple['ChatMessageInput', ...]
-    tools: Optional[Tuple['ToolInput', ...]] = None
-    temperature: Optional[float] = None
+    """A chat completion request"""
+    messages: tuple['ChatMessageInput', ...]
+    model: ID | None = None
+    tools: tuple['ToolInput', ...] | None = None
+    tool_choice: Any | None = Field(validation_alias=AliasChoices('tool_choice', 'toolChoice'), serialization_alias='toolChoice', default=None)
+    temperature: float | None = None
+    max_tokens: int | None = Field(validation_alias=AliasChoices('max_tokens', 'maxTokens'), serialization_alias='maxTokens', default=None)
+    top_p: float | None = Field(validation_alias=AliasChoices('top_p', 'topP'), serialization_alias='topP', default=None)
+    frequency_penalty: float | None = Field(validation_alias=AliasChoices('frequency_penalty', 'frequencyPenalty'), serialization_alias='frequencyPenalty', default=None)
+    presence_penalty: float | None = Field(validation_alias=AliasChoices('presence_penalty', 'presencePenalty'), serialization_alias='presencePenalty', default=None)
+    stop: tuple[str, ...] | None = None
+    n: int | None = None
+    response_format: Any | None = Field(validation_alias=AliasChoices('response_format', 'responseFormat'), serialization_alias='responseFormat', default=None)
     model_config = ConfigDict(frozen=True, extra='forbid', populate_by_name=True, use_enum_values=True)
 
 class ChatMessageInput(BaseModel):
     """A chat message input"""
     role: Role
-    content: Optional[str] = None
-    name: Optional[str] = None
-    tool_call_id: Optional[str] = Field(alias='toolCallId', default=None)
-    function_call: Optional['FunctionCallInput'] = Field(alias='functionCall', default=None)
-    tool_calls: Optional[Tuple['ToolCallInput', ...]] = Field(alias='toolCalls', default=None)
+    content: str | None = None
+    name: str | None = None
+    tool_call_id: str | None = Field(validation_alias=AliasChoices('tool_call_id', 'toolCallId'), serialization_alias='toolCallId', default=None)
+    function_call: 'FunctionCallInput | None' = Field(validation_alias=AliasChoices('function_call', 'functionCall'), serialization_alias='functionCall', default=None)
+    tool_calls: tuple['ToolCallInput', ...] | None = Field(validation_alias=AliasChoices('tool_calls', 'toolCalls'), serialization_alias='toolCalls', default=None)
     model_config = ConfigDict(frozen=True, extra='forbid', populate_by_name=True, use_enum_values=True)
 
 class ChromaCollectionFilter(BaseModel):
     """Filter for ChromaCollection"""
-    and_: Optional['ChromaCollectionFilter'] = Field(alias='AND', default=None)
-    or_: Optional['ChromaCollectionFilter'] = Field(alias='OR', default=None)
-    not_: Optional['ChromaCollectionFilter'] = Field(alias='NOT', default=None)
-    distinct: Optional[bool] = Field(alias='DISTINCT', default=None)
-    ids: Optional[Tuple[ID, ...]] = None
-    search: Optional[str] = None
+    and_: 'ChromaCollectionFilter | None' = Field(validation_alias=AliasChoices('and_', 'AND'), serialization_alias='AND', default=None)
+    or_: 'ChromaCollectionFilter | None' = Field(validation_alias=AliasChoices('or_', 'OR'), serialization_alias='OR', default=None)
+    not_: 'ChromaCollectionFilter | None' = Field(validation_alias=AliasChoices('not_', 'NOT'), serialization_alias='NOT', default=None)
+    distinct: bool | None = Field(validation_alias=AliasChoices('distinct', 'DISTINCT'), serialization_alias='DISTINCT', default=None)
+    ids: tuple[ID, ...] | None = None
+    search: str | None = None
     model_config = ConfigDict(frozen=True, extra='forbid', populate_by_name=True, use_enum_values=True)
 
 class ChromaCollectionInput(BaseModel):
-    """No documentation"""
+    """A collection of documents searchable by string"""
     name: str
     embedder: ID
-    description: Optional[str] = None
-    is_public: Annotated[Optional[bool], GraphQLDefault('False')] = Field(alias='isPublic', default=None)
-    'Default: False'
+    description: str | None = None
     model_config = ConfigDict(frozen=True, extra='forbid', populate_by_name=True, use_enum_values=True)
 
-class ChromaCollectionOrder(BaseModel):
-    """No documentation"""
-    name: Optional[Ordering] = None
-    created_at: Optional[Ordering] = Field(alias='createdAt', default=None)
+class ChromaCollectionOrderName(BaseModel):
+    """'name' variant of the @oneOf input 'ChromaCollectionOrder'"""
+    name: Ordering
     model_config = ConfigDict(frozen=True, extra='forbid', populate_by_name=True, use_enum_values=True)
+
+class ChromaCollectionOrderCreatedAt(BaseModel):
+    """'createdAt' variant of the @oneOf input 'ChromaCollectionOrder'"""
+    created_at: Ordering = Field(validation_alias=AliasChoices('created_at', 'createdAt'), serialization_alias='createdAt')
+    model_config = ConfigDict(frozen=True, extra='forbid', populate_by_name=True, use_enum_values=True)
+ChromaCollectionOrder = ChromaCollectionOrderName | ChromaCollectionOrderCreatedAt
 
 class DocumentInput(BaseModel):
     """A document to put into the vector database"""
     content: str
-    structure: Optional['StructureInput'] = None
-    id: Optional[str] = None
-    metadata: Optional[Any] = None
+    structure: 'StructureInput | None' = None
+    id: str | None = None
+    metadata: Any | None = None
     model_config = ConfigDict(frozen=True, extra='forbid', populate_by_name=True, use_enum_values=True)
 
 class FunctionCallInput(BaseModel):
@@ -156,92 +178,115 @@ class FunctionCallInput(BaseModel):
 class FunctionDefinitionInput(BaseModel):
     """A large language model function defintion"""
     name: str
-    description: Optional[str] = None
-    parameters: Optional[Any] = None
+    description: str | None = None
+    parameters: Any | None = None
     model_config = ConfigDict(frozen=True, extra='forbid', populate_by_name=True, use_enum_values=True)
 
 class ImageInput(BaseModel):
     """The image"""
-    model: Optional[ID] = None
+    model: ID | None = None
     description: str
     model_config = ConfigDict(frozen=True, extra='forbid', populate_by_name=True, use_enum_values=True)
 
 class LLMModelFilter(BaseModel):
     """Filter for LLMModel"""
-    and_: Optional['LLMModelFilter'] = Field(alias='AND', default=None)
-    or_: Optional['LLMModelFilter'] = Field(alias='OR', default=None)
-    not_: Optional['LLMModelFilter'] = Field(alias='NOT', default=None)
-    distinct: Optional[bool] = Field(alias='DISTINCT', default=None)
-    ids: Optional[Tuple[ID, ...]] = None
-    search: Optional[str] = None
-    input_modalities: Optional[Tuple[InputModality, ...]] = Field(alias='inputModalities', default=None)
-    output_modalities: Optional[Tuple[InputModality, ...]] = Field(alias='outputModalities', default=None)
+    and_: 'LLMModelFilter | None' = Field(validation_alias=AliasChoices('and_', 'AND'), serialization_alias='AND', default=None)
+    or_: 'LLMModelFilter | None' = Field(validation_alias=AliasChoices('or_', 'OR'), serialization_alias='OR', default=None)
+    not_: 'LLMModelFilter | None' = Field(validation_alias=AliasChoices('not_', 'NOT'), serialization_alias='NOT', default=None)
+    distinct: bool | None = Field(validation_alias=AliasChoices('distinct', 'DISTINCT'), serialization_alias='DISTINCT', default=None)
+    ids: tuple[ID, ...] | None = None
+    search: str | None = None
+    input_modalities: tuple[Modality, ...] | None = Field(validation_alias=AliasChoices('input_modalities', 'inputModalities'), serialization_alias='inputModalities', default=None)
+    output_modalities: tuple[Modality, ...] | None = Field(validation_alias=AliasChoices('output_modalities', 'outputModalities'), serialization_alias='outputModalities', default=None)
+    features: tuple[FeatureType, ...] | None = None
+    provider: ID | None = None
     model_config = ConfigDict(frozen=True, extra='forbid', populate_by_name=True, use_enum_values=True)
 
-class LLMModelOrder(BaseModel):
-    """No documentation"""
-    label: Optional[Ordering] = None
-    model_id: Optional[Ordering] = Field(alias='modelId', default=None)
+class LLMModelOrderLabel(BaseModel):
+    """'label' variant of the @oneOf input 'LLMModelOrder'"""
+    label: Ordering
     model_config = ConfigDict(frozen=True, extra='forbid', populate_by_name=True, use_enum_values=True)
+
+class LLMModelOrderModelId(BaseModel):
+    """'modelId' variant of the @oneOf input 'LLMModelOrder'"""
+    model_id: Ordering = Field(validation_alias=AliasChoices('model_id', 'modelId'), serialization_alias='modelId')
+    model_config = ConfigDict(frozen=True, extra='forbid', populate_by_name=True, use_enum_values=True)
+LLMModelOrder = LLMModelOrderLabel | LLMModelOrderModelId
 
 class MessageFilter(BaseModel):
     """Message represent the message of an agent on a room"""
-    and_: Optional['MessageFilter'] = Field(alias='AND', default=None)
-    or_: Optional['MessageFilter'] = Field(alias='OR', default=None)
-    not_: Optional['MessageFilter'] = Field(alias='NOT', default=None)
-    distinct: Optional[bool] = Field(alias='DISTINCT', default=None)
-    ids: Optional[Tuple[ID, ...]] = None
-    search: Optional[str] = None
+    and_: 'MessageFilter | None' = Field(validation_alias=AliasChoices('and_', 'AND'), serialization_alias='AND', default=None)
+    or_: 'MessageFilter | None' = Field(validation_alias=AliasChoices('or_', 'OR'), serialization_alias='OR', default=None)
+    not_: 'MessageFilter | None' = Field(validation_alias=AliasChoices('not_', 'NOT'), serialization_alias='NOT', default=None)
+    distinct: bool | None = Field(validation_alias=AliasChoices('distinct', 'DISTINCT'), serialization_alias='DISTINCT', default=None)
+    ids: tuple[ID, ...] | None = None
+    search: str | None = None
     model_config = ConfigDict(frozen=True, extra='forbid', populate_by_name=True, use_enum_values=True)
 
-class MessageOrder(BaseModel):
-    """No documentation"""
-    created_at: Optional[Ordering] = Field(alias='createdAt', default=None)
+class MessageOrderCreatedAt(BaseModel):
+    """'createdAt' variant of the @oneOf input 'MessageOrder'"""
+    created_at: Ordering = Field(validation_alias=AliasChoices('created_at', 'createdAt'), serialization_alias='createdAt')
     model_config = ConfigDict(frozen=True, extra='forbid', populate_by_name=True, use_enum_values=True)
+MessageOrder = MessageOrderCreatedAt
 
 class OffsetPaginationInput(BaseModel):
     """No documentation"""
-    offset: Annotated[Optional[int], GraphQLDefault('0')] = None
+    offset: Annotated[int | None, GraphQLDefault('0')] = None
     'Default: 0'
-    limit: Optional[int] = None
+    limit: int | None = None
     model_config = ConfigDict(frozen=True, extra='forbid', populate_by_name=True, use_enum_values=True)
 
 class ProviderInput(BaseModel):
     """A large language model to change with"""
-    description: Optional[str] = None
-    name: Optional[str] = None
+    description: str | None = None
+    name: str | None = None
     kind: ProviderKind
-    api_key: Optional[str] = Field(alias='apiKey', default=None)
-    api_base: Optional[str] = Field(alias='apiBase', default=None)
-    additional_config: Optional[Any] = Field(alias='additionalConfig', default=None)
+    api_key: str | None = Field(validation_alias=AliasChoices('api_key', 'apiKey'), serialization_alias='apiKey', default=None)
+    api_base: str | None = Field(validation_alias=AliasChoices('api_base', 'apiBase'), serialization_alias='apiBase', default=None)
+    additional_config: Any | None = Field(validation_alias=AliasChoices('additional_config', 'additionalConfig'), serialization_alias='additionalConfig', default=None)
     model_config = ConfigDict(frozen=True, extra='forbid', populate_by_name=True, use_enum_values=True)
 
 class PullInput(BaseModel):
-    """No documentation"""
-    model_name: str = Field(alias='modelName')
+    """The model to pull, and the provider to pull it into"""
+    model_name: str = Field(validation_alias=AliasChoices('model_name', 'modelName'), serialization_alias='modelName')
+    provider: ID | None = None
+    model_config = ConfigDict(frozen=True, extra='forbid', populate_by_name=True, use_enum_values=True)
+
+class QueryInput(BaseModel):
+    """A similarity query against a collection"""
+    collection: ID
+    query_texts: tuple[str, ...] = Field(validation_alias=AliasChoices('query_texts', 'queryTexts'), serialization_alias='queryTexts')
+    n_results: Annotated[int | None, GraphQLDefault('3')] = Field(validation_alias=AliasChoices('n_results', 'nResults'), serialization_alias='nResults', default=None)
+    'Default: 3'
+    where: Any | None = None
     model_config = ConfigDict(frozen=True, extra='forbid', populate_by_name=True, use_enum_values=True)
 
 class RoomFilter(BaseModel):
     """Room(id, title, description, creator, organization, created_at)"""
-    and_: Optional['RoomFilter'] = Field(alias='AND', default=None)
-    or_: Optional['RoomFilter'] = Field(alias='OR', default=None)
-    not_: Optional['RoomFilter'] = Field(alias='NOT', default=None)
-    distinct: Optional[bool] = Field(alias='DISTINCT', default=None)
-    ids: Optional[Tuple[ID, ...]] = None
-    search: Optional[str] = None
-    talking_about: Optional['StructureInput'] = Field(alias='talkingAbout', default=None)
+    and_: 'RoomFilter | None' = Field(validation_alias=AliasChoices('and_', 'AND'), serialization_alias='AND', default=None)
+    or_: 'RoomFilter | None' = Field(validation_alias=AliasChoices('or_', 'OR'), serialization_alias='OR', default=None)
+    not_: 'RoomFilter | None' = Field(validation_alias=AliasChoices('not_', 'NOT'), serialization_alias='NOT', default=None)
+    distinct: bool | None = Field(validation_alias=AliasChoices('distinct', 'DISTINCT'), serialization_alias='DISTINCT', default=None)
+    ids: tuple[ID, ...] | None = None
+    search: str | None = None
+    talking_about: 'StructureInput | None' = Field(validation_alias=AliasChoices('talking_about', 'talkingAbout'), serialization_alias='talkingAbout', default=None)
     model_config = ConfigDict(frozen=True, extra='forbid', populate_by_name=True, use_enum_values=True)
 
-class RoomOrder(BaseModel):
-    """No documentation"""
-    created_at: Optional[Ordering] = Field(alias='createdAt', default=None)
-    title: Optional[Ordering] = None
+class RoomOrderCreatedAt(BaseModel):
+    """'createdAt' variant of the @oneOf input 'RoomOrder'"""
+    created_at: Ordering = Field(validation_alias=AliasChoices('created_at', 'createdAt'), serialization_alias='createdAt')
     model_config = ConfigDict(frozen=True, extra='forbid', populate_by_name=True, use_enum_values=True)
+
+class RoomOrderTitle(BaseModel):
+    """'title' variant of the @oneOf input 'RoomOrder'"""
+    title: Ordering
+    model_config = ConfigDict(frozen=True, extra='forbid', populate_by_name=True, use_enum_values=True)
+RoomOrder = RoomOrderCreatedAt | RoomOrderTitle
 
 class StructureInput(BaseModel):
-    """A function definition for a large language model"""
+    """A reference to an object held by another Arkitekt service"""
     identifier: str
-    object: str
+    object: int
     model_config = ConfigDict(frozen=True, extra='forbid', populate_by_name=True, use_enum_values=True)
 
 class ToolCallInput(BaseModel):
@@ -253,7 +298,7 @@ class ToolCallInput(BaseModel):
 
 class ToolInput(BaseModel):
     """A large language model function call"""
-    type: Annotated[Optional[ToolType], GraphQLDefault('FUNCTION')] = None
+    type: Annotated[ToolType | None, GraphQLDefault('FUNCTION')] = None
     'Default: FUNCTION'
     function: FunctionDefinitionInput
     model_config = ConfigDict(frozen=True, extra='forbid', populate_by_name=True, use_enum_values=True)
@@ -263,6 +308,7 @@ class ChromaCollection(BaseModel):
     typename: Literal['ChromaCollection'] = Field(alias='__typename', default='ChromaCollection', exclude=True)
     id: ID
     name: str
+    'The human-readable name of the collection, unique within its organization'
     description: str
     created_at: datetime = Field(alias='createdAt')
     model_config = ConfigDict(frozen=True)
@@ -274,12 +320,13 @@ class ChromaCollection(BaseModel):
         type = 'ChromaCollection'
 
 class Document(BaseModel):
-    """No documentation"""
+    """A document stored in a collection"""
     typename: Literal['Document'] = Field(alias='__typename', default='Document', exclude=True)
     id: str
     content: str
-    metadata: Optional[Any] = Field(default=None)
-    distance: Optional[float] = Field(default=None)
+    metadata: Any | None = Field(default=None)
+    'The metadata stored alongside the document'
+    distance: float | None = Field(default=None)
     model_config = ConfigDict(frozen=True)
 
     class Meta:
@@ -291,15 +338,16 @@ class Document(BaseModel):
 class LLMModelProvider(BaseModel):
     """A provider of LLMs"""
     typename: Literal['Provider'] = Field(alias='__typename', default='Provider', exclude=True)
-    id: str
+    id: ID
     name: str
     model_config = ConfigDict(frozen=True)
 
-class LLMModelEmbedderfor(BaseModel):
+class LLMModelEmbedderFor(BaseModel):
     """A collection of documents searchable by string"""
     typename: Literal['ChromaCollection'] = Field(alias='__typename', default='ChromaCollection', exclude=True)
     id: ID
     name: str
+    'The human-readable name of the collection, unique within its organization'
     model_config = ConfigDict(frozen=True)
 
 class LLMModel(BaseModel):
@@ -307,9 +355,9 @@ class LLMModel(BaseModel):
     typename: Literal['LLMModel'] = Field(alias='__typename', default='LLMModel', exclude=True)
     id: ID
     provider: LLMModelProvider
-    features: Tuple[FeatureType, ...]
+    features: tuple[FeatureType, ...]
     'The features supported by the model'
-    embedder_for: Tuple[LLMModelEmbedderfor, ...] = Field(alias='embedderFor')
+    embedder_for: tuple[LLMModelEmbedderFor, ...] = Field(alias='embedderFor')
     'The collections that can be embedded with this model'
     model_config = ConfigDict(frozen=True)
 
@@ -320,15 +368,15 @@ class LLMModel(BaseModel):
         type = 'LLMModel'
 
 class ListMessageAgent(BaseModel):
-    """Agent(id, room, name, client, user)"""
+    """A participant in a room"""
     typename: Literal['Agent'] = Field(alias='__typename', default='Agent', exclude=True)
     id: ID
     model_config = ConfigDict(frozen=True)
 
-class ListMessageAttachedstructures(BaseModel):
-    """The type of the tool"""
+class ListMessageAttachedStructures(BaseModel):
+    """A reference to an object held by another Arkitekt service"""
     typename: Literal['Structure'] = Field(alias='__typename', default='Structure', exclude=True)
-    object: str
+    object: int
     identifier: str
     model_config = ConfigDict(frozen=True)
 
@@ -340,8 +388,8 @@ class ListMessage(BaseModel):
     'A clear text representation of the rich comment'
     agent: ListMessageAgent
     'The user that created this comment'
-    attached_structures: Tuple[ListMessageAttachedstructures, ...] = Field(alias='attachedStructures')
-    'The collections that can be embedded with this model'
+    attached_structures: tuple[ListMessageAttachedStructures, ...] = Field(alias='attachedStructures')
+    'The objects this message was posted about'
     model_config = ConfigDict(frozen=True)
 
     class Meta:
@@ -355,16 +403,16 @@ class ProviderModels(BaseModel):
     typename: Literal['LLMModel'] = Field(alias='__typename', default='LLMModel', exclude=True)
     id: ID
     model_id: str = Field(alias='modelId')
-    features: Tuple[FeatureType, ...]
+    features: tuple[FeatureType, ...]
     'The features supported by the model'
     model_config = ConfigDict(frozen=True)
 
 class Provider(BaseModel):
     """A provider of LLMs"""
     typename: Literal['Provider'] = Field(alias='__typename', default='Provider', exclude=True)
-    id: str
+    id: ID
     name: str
-    models: Tuple[ProviderModels, ...]
+    models: tuple[ProviderModels, ...]
     model_config = ConfigDict(frozen=True)
 
     class Meta:
@@ -381,44 +429,54 @@ class ChatResponseUsage(BaseModel):
     total_tokens: int = Field(alias='totalTokens')
     model_config = ConfigDict(frozen=True)
 
-class ChatResponseChoicesMessageFunctioncall(BaseModel):
+class ChatResponseChoicesThinkingBlocks(BaseModel):
+    """No documentation"""
+    typename: Literal['ThinkingBlock'] = Field(alias='__typename', default='ThinkingBlock', exclude=True)
+    type: ThinkingBlockType
+    thinking: str
+    signature: str | None = Field(default=None)
+    model_config = ConfigDict(frozen=True)
+
+class ChatResponseChoicesMessageFunctionCall(BaseModel):
     """The type of the tool"""
     typename: Literal['FunctionCall'] = Field(alias='__typename', default='FunctionCall', exclude=True)
     name: str
     arguments: str
     model_config = ConfigDict(frozen=True)
 
-class ChatResponseChoicesMessageToolcallsFunction(BaseModel):
+class ChatResponseChoicesMessageToolCallsFunction(BaseModel):
     """The type of the tool"""
     typename: Literal['FunctionCall'] = Field(alias='__typename', default='FunctionCall', exclude=True)
     name: str
     arguments: str
     model_config = ConfigDict(frozen=True)
 
-class ChatResponseChoicesMessageToolcalls(BaseModel):
+class ChatResponseChoicesMessageToolCalls(BaseModel):
     """A function definition for a large language model"""
     typename: Literal['ToolCall'] = Field(alias='__typename', default='ToolCall', exclude=True)
     id: str
     type: ToolType
-    function: ChatResponseChoicesMessageToolcallsFunction
+    function: ChatResponseChoicesMessageToolCallsFunction
     model_config = ConfigDict(frozen=True)
 
 class ChatResponseChoicesMessage(BaseModel):
     """No documentation"""
     typename: Literal['ChatMessage'] = Field(alias='__typename', default='ChatMessage', exclude=True)
     role: Role
-    content: Optional[str] = Field(default=None)
-    name: Optional[str] = Field(default=None)
-    tool_call_id: Optional[str] = Field(default=None, alias='toolCallId')
-    function_call: Optional[ChatResponseChoicesMessageFunctioncall] = Field(default=None, alias='functionCall')
-    tool_calls: Optional[Tuple[ChatResponseChoicesMessageToolcalls, ...]] = Field(default=None, alias='toolCalls')
+    content: str | None = Field(default=None)
+    name: str | None = Field(default=None)
+    tool_call_id: str | None = Field(default=None, alias='toolCallId')
+    function_call: ChatResponseChoicesMessageFunctionCall | None = Field(default=None, alias='functionCall')
+    tool_calls: tuple[ChatResponseChoicesMessageToolCalls, ...] | None = Field(default=None, alias='toolCalls')
     model_config = ConfigDict(frozen=True)
 
 class ChatResponseChoices(BaseModel):
     """No documentation"""
     typename: Literal['Choice'] = Field(alias='__typename', default='Choice', exclude=True)
     index: int
-    finish_reason: Optional[str] = Field(default=None, alias='finishReason')
+    finish_reason: str | None = Field(default=None, alias='finishReason')
+    reasoning_content: str | None = Field(default=None, alias='reasoningContent')
+    thinking_blocks: tuple[ChatResponseChoicesThinkingBlocks, ...] | None = Field(default=None, alias='thinkingBlocks')
     message: ChatResponseChoicesMessage
     model_config = ConfigDict(frozen=True)
 
@@ -429,23 +487,23 @@ class ChatResponse(ChatResponseTraits, BaseModel):
     object: str
     created: int
     model: str
-    usage: Optional[ChatResponseUsage] = Field(default=None)
-    choices: Tuple[ChatResponseChoices, ...]
+    usage: ChatResponseUsage | None = Field(default=None)
+    choices: tuple[ChatResponseChoices, ...]
     model_config = ConfigDict(frozen=True)
 
     class Meta:
         """Meta class for ChatResponse"""
-        document = 'fragment ChatResponse on ChatResponse {\n  id\n  object\n  created\n  model\n  usage {\n    promptTokens\n    completionTokens\n    totalTokens\n    __typename\n  }\n  choices {\n    index\n    finishReason\n    message {\n      role\n      content\n      name\n      toolCallId\n      functionCall {\n        name\n        arguments\n        __typename\n      }\n      toolCalls {\n        id\n        type\n        function {\n          name\n          arguments\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n  __typename\n}'
+        document = 'fragment ChatResponse on ChatResponse {\n  id\n  object\n  created\n  model\n  usage {\n    promptTokens\n    completionTokens\n    totalTokens\n    __typename\n  }\n  choices {\n    index\n    finishReason\n    reasoningContent\n    thinkingBlocks {\n      type\n      thinking\n      signature\n      __typename\n    }\n    message {\n      role\n      content\n      name\n      toolCallId\n      functionCall {\n        name\n        arguments\n        __typename\n      }\n      toolCalls {\n        id\n        type\n        function {\n          name\n          arguments\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n  __typename\n}'
         name = 'ChatResponse'
         type = 'ChatResponse'
 
 class Room(BaseModel):
-    """Room(id, title, description, creator, organization, created_at)"""
+    """A room agents and users converse in"""
     typename: Literal['Room'] = Field(alias='__typename', default='Room', exclude=True)
     id: ID
     title: str
     'The Title of the Room'
-    description: str
+    description: str | None = Field(default=None)
     model_config = ConfigDict(frozen=True)
 
     class Meta:
@@ -455,30 +513,30 @@ class Room(BaseModel):
         type = 'Room'
 
 class MessageAgentRoom(BaseModel):
-    """Room(id, title, description, creator, organization, created_at)"""
+    """A room agents and users converse in"""
     typename: Literal['Room'] = Field(alias='__typename', default='Room', exclude=True)
     id: ID
     model_config = ConfigDict(frozen=True)
 
 class MessageAgent(BaseModel):
-    """Agent(id, room, name, client, user)"""
+    """A participant in a room"""
     typename: Literal['Agent'] = Field(alias='__typename', default='Agent', exclude=True)
     id: ID
     room: MessageAgentRoom
     model_config = ConfigDict(frozen=True)
 
 class MessageRoom(BaseModel):
-    """Room(id, title, description, creator, organization, created_at)"""
+    """A room agents and users converse in"""
     typename: Literal['Room'] = Field(alias='__typename', default='Room', exclude=True)
     id: ID
     title: str
     'The Title of the Room'
     model_config = ConfigDict(frozen=True)
 
-class MessageAttachedstructures(BaseModel):
-    """The type of the tool"""
+class MessageAttachedStructures(BaseModel):
+    """A reference to an object held by another Arkitekt service"""
     typename: Literal['Structure'] = Field(alias='__typename', default='Structure', exclude=True)
-    object: str
+    object: int
     identifier: str
     model_config = ConfigDict(frozen=True)
 
@@ -491,9 +549,9 @@ class Message(BaseModel):
     agent: MessageAgent
     'The user that created this comment'
     room: MessageRoom
-    before: Tuple[ListMessage, ...]
-    attached_structures: Tuple[MessageAttachedstructures, ...] = Field(alias='attachedStructures')
-    'The collections that can be embedded with this model'
+    before: tuple[ListMessage, ...]
+    attached_structures: tuple[MessageAttachedStructures, ...] = Field(alias='attachedStructures')
+    'The objects this message was posted about'
     model_config = ConfigDict(frozen=True)
 
     class Meta:
@@ -505,24 +563,24 @@ class Message(BaseModel):
 class ChatMutation(BaseModel):
     """No documentation found for this operation."""
     chat: ChatResponse
+    'Send a chat completion request'
 
     class Arguments(BaseModel):
         """Arguments for Chat """
         input: ChatInput
-        model_config = ConfigDict(populate_by_name=True)
 
     class Meta:
         """Meta class for Chat """
-        document = 'fragment ChatResponse on ChatResponse {\n  id\n  object\n  created\n  model\n  usage {\n    promptTokens\n    completionTokens\n    totalTokens\n    __typename\n  }\n  choices {\n    index\n    finishReason\n    message {\n      role\n      content\n      name\n      toolCallId\n      functionCall {\n        name\n        arguments\n        __typename\n      }\n      toolCalls {\n        id\n        type\n        function {\n          name\n          arguments\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n  __typename\n}\n\nmutation Chat($input: ChatInput!) {\n  chat(input: $input) {\n    ...ChatResponse\n    __typename\n  }\n}'
+        document = 'fragment ChatResponse on ChatResponse {\n  id\n  object\n  created\n  model\n  usage {\n    promptTokens\n    completionTokens\n    totalTokens\n    __typename\n  }\n  choices {\n    index\n    finishReason\n    reasoningContent\n    thinkingBlocks {\n      type\n      thinking\n      signature\n      __typename\n    }\n    message {\n      role\n      content\n      name\n      toolCallId\n      functionCall {\n        name\n        arguments\n        __typename\n      }\n      toolCalls {\n        id\n        type\n        function {\n          name\n          arguments\n          __typename\n        }\n        __typename\n      }\n      __typename\n    }\n    __typename\n  }\n  __typename\n}\n\nmutation Chat($input: ChatInput!) {\n  chat(input: $input) {\n    ...ChatResponse\n    __typename\n  }\n}'
 
 class CreateCollectionMutation(BaseModel):
     """No documentation found for this operation."""
     create_collection: ChromaCollection = Field(alias='createCollection')
+    'Create a searchable collection of documents'
 
     class Arguments(BaseModel):
         """Arguments for CreateCollection """
         input: ChromaCollectionInput
-        model_config = ConfigDict(populate_by_name=True)
 
     class Meta:
         """Meta class for CreateCollection """
@@ -531,11 +589,11 @@ class CreateCollectionMutation(BaseModel):
 class EnsureCollectionMutation(BaseModel):
     """No documentation found for this operation."""
     ensure_collection: ChromaCollection = Field(alias='ensureCollection')
+    'Create a collection, or update it if it already exists'
 
     class Arguments(BaseModel):
         """Arguments for EnsureCollection """
         input: ChromaCollectionInput
-        model_config = ConfigDict(populate_by_name=True)
 
     class Meta:
         """Meta class for EnsureCollection """
@@ -543,31 +601,31 @@ class EnsureCollectionMutation(BaseModel):
 
 class AddDocumentsToCollectionMutation(BaseModel):
     """No documentation found for this operation."""
-    add_documents_to_collection: Tuple[Document, ...] = Field(alias='addDocumentsToCollection')
+    add_documents_to_collection: tuple[Document, ...] = Field(alias='addDocumentsToCollection')
+    'Embed documents and add them to a collection'
 
     class Arguments(BaseModel):
         """Arguments for AddDocumentsToCollection """
         input: AddDocumentsToCollectionInput
-        model_config = ConfigDict(populate_by_name=True)
 
     class Meta:
         """Meta class for AddDocumentsToCollection """
         document = 'fragment Document on Document {\n  id\n  content\n  metadata\n  distance\n  __typename\n}\n\nmutation AddDocumentsToCollection($input: AddDocumentsToCollectionInput!) {\n  addDocumentsToCollection(input: $input) {\n    ...Document\n    __typename\n  }\n}'
 
-class GenerateImageMutationGenerateimage(BaseModel):
-    """No documentation"""
-    typename: Literal['ImageReponse'] = Field(alias='__typename', default='ImageReponse', exclude=True)
+class GenerateImageMutationGenerateImage(BaseModel):
+    """A generated image, base64 encoded"""
+    typename: Literal['ImageResponse'] = Field(alias='__typename', default='ImageResponse', exclude=True)
     image: str
     model_config = ConfigDict(frozen=True)
 
 class GenerateImageMutation(BaseModel):
     """No documentation found for this operation."""
-    generate_image: GenerateImageMutationGenerateimage = Field(alias='generateImage')
+    generate_image: GenerateImageMutationGenerateImage = Field(alias='generateImage')
+    'Generate an image from a text description'
 
     class Arguments(BaseModel):
         """Arguments for GenerateImage """
         input: ImageInput
-        model_config = ConfigDict(populate_by_name=True)
 
     class Meta:
         """Meta class for GenerateImage """
@@ -576,14 +634,14 @@ class GenerateImageMutation(BaseModel):
 class SendMutation(BaseModel):
     """No documentation found for this operation."""
     send: Message
+    'Post a message into a room'
 
     class Arguments(BaseModel):
         """Arguments for Send """
         text: str
         room: ID
-        agent_id: str = Field(alias='agentId')
-        attach_structures: Optional[List[StructureInput]] = Field(alias='attachStructures', default=None)
-        model_config = ConfigDict(populate_by_name=True)
+        agent_id: str = Field(validation_alias=AliasChoices('agent_id', 'agentId'), serialization_alias='agentId')
+        attach_structures: list[StructureInput] | None = Field(validation_alias=AliasChoices('attach_structures', 'attachStructures'), serialization_alias='attachStructures', default=None)
 
     class Meta:
         """Meta class for Send """
@@ -592,31 +650,31 @@ class SendMutation(BaseModel):
 class CreateProviderMutation(BaseModel):
     """No documentation found for this operation."""
     create_provider: Provider = Field(alias='createProvider')
+    'Configure a new LLM provider and list the models it offers'
 
     class Arguments(BaseModel):
         """Arguments for CreateProvider """
         input: ProviderInput
-        model_config = ConfigDict(populate_by_name=True)
 
     class Meta:
         """Meta class for CreateProvider """
         document = 'fragment Provider on Provider {\n  id\n  name\n  models {\n    id\n    modelId\n    features\n    __typename\n  }\n  __typename\n}\n\nmutation CreateProvider($input: ProviderInput!) {\n  createProvider(input: $input) {\n    ...Provider\n    __typename\n  }\n}'
 
 class PullMutationPull(BaseModel):
-    """No documentation"""
+    """The outcome of pulling a model"""
     typename: Literal['OllamaPullResult'] = Field(alias='__typename', default='OllamaPullResult', exclude=True)
     status: str
-    detail: Optional[str] = Field(default=None)
+    detail: str | None = Field(default=None)
     model_config = ConfigDict(frozen=True)
 
 class PullMutation(BaseModel):
     """No documentation found for this operation."""
     pull: PullMutationPull
+    'Pull a model into an Ollama provider'
 
     class Arguments(BaseModel):
         """Arguments for Pull """
         input: PullInput
-        model_config = ConfigDict(populate_by_name=True)
 
     class Meta:
         """Meta class for Pull """
@@ -625,12 +683,12 @@ class PullMutation(BaseModel):
 class CreateRoomMutation(BaseModel):
     """No documentation found for this operation."""
     create_room: Room = Field(alias='createRoom')
+    'Open a new room'
 
     class Arguments(BaseModel):
         """Arguments for CreateRoom """
-        title: Optional[str] = Field(default=None)
-        description: Optional[str] = Field(default=None)
-        model_config = ConfigDict(populate_by_name=True)
+        title: str | None = Field(default=None)
+        description: str | None = Field(default=None)
 
     class Meta:
         """Meta class for CreateRoom """
@@ -639,11 +697,11 @@ class CreateRoomMutation(BaseModel):
 class GetChromaCollectionQuery(BaseModel):
     """No documentation found for this operation."""
     chroma_collection: ChromaCollection = Field(alias='chromaCollection')
+    'Get a single Chroma collection by ID'
 
     class Arguments(BaseModel):
         """Arguments for GetChromaCollection """
         id: ID
-        model_config = ConfigDict(populate_by_name=True)
 
     class Meta:
         """Meta class for GetChromaCollection """
@@ -654,19 +712,20 @@ class SearchChromaCollectionQueryOptions(BaseModel):
     typename: Literal['ChromaCollection'] = Field(alias='__typename', default='ChromaCollection', exclude=True)
     value: ID
     label: str
+    'The human-readable name of the collection, unique within its organization'
     model_config = ConfigDict(frozen=True)
 
 class SearchChromaCollectionQuery(BaseModel):
     """No documentation found for this operation."""
-    options: Tuple[SearchChromaCollectionQueryOptions, ...]
+    options: tuple[SearchChromaCollectionQueryOptions, ...]
+    "List this organization's Chroma collections"
 
     class Arguments(BaseModel):
         """Arguments for SearchChromaCollection """
-        search: Optional[str] = Field(default=None)
-        values: Optional[List[ID]] = Field(default=None)
-        limit: Annotated[Optional[int], GraphQLDefault('10')] = Field(default=None)
-        offset: Annotated[Optional[int], GraphQLDefault('0')] = Field(default=None)
-        model_config = ConfigDict(populate_by_name=True)
+        search: str | None = Field(default=None)
+        values: list[ID] | None = Field(default=None)
+        limit: Annotated[int | None, GraphQLDefault('10')] = Field(default=None)
+        offset: Annotated[int | None, GraphQLDefault('0')] = Field(default=None)
 
     class Meta:
         """Meta class for SearchChromaCollection """
@@ -674,14 +733,14 @@ class SearchChromaCollectionQuery(BaseModel):
 
 class ListChromaCollectionsQuery(BaseModel):
     """No documentation found for this operation."""
-    chroma_collections: Tuple[ChromaCollection, ...] = Field(alias='chromaCollections')
+    chroma_collections: tuple[ChromaCollection, ...] = Field(alias='chromaCollections')
+    "List this organization's Chroma collections"
 
     class Arguments(BaseModel):
         """Arguments for ListChromaCollections """
-        filter: Optional[ChromaCollectionFilter] = Field(default=None)
-        order: Optional[List[ChromaCollectionOrder]] = Field(default=None)
-        pagination: Optional[OffsetPaginationInput] = Field(default=None)
-        model_config = ConfigDict(populate_by_name=True)
+        filter: ChromaCollectionFilter | None = Field(default=None)
+        order: list[ChromaCollectionOrder] | None = Field(default=None)
+        pagination: OffsetPaginationInput | None = Field(default=None)
 
     class Meta:
         """Meta class for ListChromaCollections """
@@ -689,28 +748,25 @@ class ListChromaCollectionsQuery(BaseModel):
 
 class QueryDocumentsQuery(BaseModel):
     """No documentation found for this operation."""
-    documents: Tuple[Document, ...]
+    documents: tuple[Document, ...]
+    'Search a collection for the documents most similar to some text'
 
     class Arguments(BaseModel):
         """Arguments for QueryDocuments """
-        collection: ID
-        query_texts: List[str] = Field(alias='queryTexts')
-        n_results: Optional[int] = Field(alias='nResults', default=None)
-        where: Optional[Any] = Field(default=None)
-        model_config = ConfigDict(populate_by_name=True)
+        input: QueryInput
 
     class Meta:
         """Meta class for QueryDocuments """
-        document = 'fragment Document on Document {\n  id\n  content\n  metadata\n  distance\n  __typename\n}\n\nquery QueryDocuments($collection: ID!, $queryTexts: [String!]!, $nResults: Int, $where: JSON) {\n  documents(\n    collection: $collection\n    queryTexts: $queryTexts\n    nResults: $nResults\n    where: $where\n  ) {\n    ...Document\n    __typename\n  }\n}'
+        document = 'fragment Document on Document {\n  id\n  content\n  metadata\n  distance\n  __typename\n}\n\nquery QueryDocuments($input: QueryInput!) {\n  documents(input: $input) {\n    ...Document\n    __typename\n  }\n}'
 
 class GetLLMModelQuery(BaseModel):
     """No documentation found for this operation."""
     llm_model: LLMModel = Field(alias='llmModel')
+    'Get a single LLM model by ID'
 
     class Arguments(BaseModel):
         """Arguments for GetLLMModel """
         id: ID
-        model_config = ConfigDict(populate_by_name=True)
 
     class Meta:
         """Meta class for GetLLMModel """
@@ -725,15 +781,15 @@ class SearchLLMModelsQueryOptions(BaseModel):
 
 class SearchLLMModelsQuery(BaseModel):
     """No documentation found for this operation."""
-    options: Tuple[SearchLLMModelsQueryOptions, ...]
+    options: tuple[SearchLLMModelsQueryOptions, ...]
+    "List the LLM models reachable through this organization's providers"
 
     class Arguments(BaseModel):
         """Arguments for SearchLLMModels """
-        search: Optional[str] = Field(default=None)
-        values: Optional[List[ID]] = Field(default=None)
-        limit: Annotated[Optional[int], GraphQLDefault('10')] = Field(default=None)
-        offset: Annotated[Optional[int], GraphQLDefault('0')] = Field(default=None)
-        model_config = ConfigDict(populate_by_name=True)
+        search: str | None = Field(default=None)
+        values: list[ID] | None = Field(default=None)
+        limit: Annotated[int | None, GraphQLDefault('10')] = Field(default=None)
+        offset: Annotated[int | None, GraphQLDefault('0')] = Field(default=None)
 
     class Meta:
         """Meta class for SearchLLMModels """
@@ -741,14 +797,14 @@ class SearchLLMModelsQuery(BaseModel):
 
 class ListLLModelsQuery(BaseModel):
     """No documentation found for this operation."""
-    llm_models: Tuple[LLMModel, ...] = Field(alias='llmModels')
+    llm_models: tuple[LLMModel, ...] = Field(alias='llmModels')
+    "List the LLM models reachable through this organization's providers"
 
     class Arguments(BaseModel):
         """Arguments for ListLLModels """
-        filter: Optional[LLMModelFilter] = Field(default=None)
-        order: Optional[List[LLMModelOrder]] = Field(default=None)
-        pagination: Optional[OffsetPaginationInput] = Field(default=None)
-        model_config = ConfigDict(populate_by_name=True)
+        filter: LLMModelFilter | None = Field(default=None)
+        order: list[LLMModelOrder] | None = Field(default=None)
+        pagination: OffsetPaginationInput | None = Field(default=None)
 
     class Meta:
         """Meta class for ListLLModels """
@@ -757,11 +813,11 @@ class ListLLModelsQuery(BaseModel):
 class GetMessageQuery(BaseModel):
     """No documentation found for this operation."""
     message: Message
+    'Get a single message by ID'
 
     class Arguments(BaseModel):
         """Arguments for GetMessage """
         id: ID
-        model_config = ConfigDict(populate_by_name=True)
 
     class Meta:
         """Meta class for GetMessage """
@@ -776,15 +832,15 @@ class SearchMessagesQueryOptions(BaseModel):
 
 class SearchMessagesQuery(BaseModel):
     """No documentation found for this operation."""
-    options: Tuple[SearchMessagesQueryOptions, ...]
+    options: tuple[SearchMessagesQueryOptions, ...]
+    "List the messages in this organization's rooms"
 
     class Arguments(BaseModel):
         """Arguments for SearchMessages """
-        search: Optional[str] = Field(default=None)
-        values: Optional[List[ID]] = Field(default=None)
-        limit: Annotated[Optional[int], GraphQLDefault('10')] = Field(default=None)
-        offset: Annotated[Optional[int], GraphQLDefault('0')] = Field(default=None)
-        model_config = ConfigDict(populate_by_name=True)
+        search: str | None = Field(default=None)
+        values: list[ID] | None = Field(default=None)
+        limit: Annotated[int | None, GraphQLDefault('10')] = Field(default=None)
+        offset: Annotated[int | None, GraphQLDefault('0')] = Field(default=None)
 
     class Meta:
         """Meta class for SearchMessages """
@@ -792,14 +848,14 @@ class SearchMessagesQuery(BaseModel):
 
 class ListMessagesQuery(BaseModel):
     """No documentation found for this operation."""
-    messages: Tuple[ListMessage, ...]
+    messages: tuple[ListMessage, ...]
+    "List the messages in this organization's rooms"
 
     class Arguments(BaseModel):
         """Arguments for ListMessages """
-        filter: Optional[MessageFilter] = Field(default=None)
-        order: Optional[List[MessageOrder]] = Field(default=None)
-        pagination: Optional[OffsetPaginationInput] = Field(default=None)
-        model_config = ConfigDict(populate_by_name=True)
+        filter: MessageFilter | None = Field(default=None)
+        order: list[MessageOrder] | None = Field(default=None)
+        pagination: OffsetPaginationInput | None = Field(default=None)
 
     class Meta:
         """Meta class for ListMessages """
@@ -808,36 +864,36 @@ class ListMessagesQuery(BaseModel):
 class GetRoomQuery(BaseModel):
     """No documentation found for this operation."""
     room: Room
+    'Get a single room by ID'
 
     class Arguments(BaseModel):
         """Arguments for GetRoom """
         id: ID
-        model_config = ConfigDict(populate_by_name=True)
 
     class Meta:
         """Meta class for GetRoom """
         document = 'fragment Room on Room {\n  id\n  title\n  description\n  __typename\n}\n\nquery GetRoom($id: ID!) {\n  room(id: $id) {\n    ...Room\n    __typename\n  }\n}'
 
 class SearchRoomsQueryOptions(BaseModel):
-    """Room(id, title, description, creator, organization, created_at)"""
+    """A room agents and users converse in"""
     typename: Literal['Room'] = Field(alias='__typename', default='Room', exclude=True)
     value: ID
     label: str
     'The Title of the Room'
-    description: str
+    description: str | None = Field(default=None)
     model_config = ConfigDict(frozen=True)
 
 class SearchRoomsQuery(BaseModel):
     """No documentation found for this operation."""
-    options: Tuple[SearchRoomsQueryOptions, ...]
+    options: tuple[SearchRoomsQueryOptions, ...]
+    'List the rooms in this organization'
 
     class Arguments(BaseModel):
         """Arguments for SearchRooms """
-        search: Optional[str] = Field(default=None)
-        values: Optional[List[ID]] = Field(default=None)
-        limit: Annotated[Optional[int], GraphQLDefault('10')] = Field(default=None)
-        offset: Annotated[Optional[int], GraphQLDefault('0')] = Field(default=None)
-        model_config = ConfigDict(populate_by_name=True)
+        search: str | None = Field(default=None)
+        values: list[ID] | None = Field(default=None)
+        limit: Annotated[int | None, GraphQLDefault('10')] = Field(default=None)
+        offset: Annotated[int | None, GraphQLDefault('0')] = Field(default=None)
 
     class Meta:
         """Meta class for SearchRooms """
@@ -845,194 +901,237 @@ class SearchRoomsQuery(BaseModel):
 
 class ListRoomsQuery(BaseModel):
     """No documentation found for this operation."""
-    rooms: Tuple[Room, ...]
+    rooms: tuple[Room, ...]
+    'List the rooms in this organization'
 
     class Arguments(BaseModel):
         """Arguments for ListRooms """
-        filter: Optional[RoomFilter] = Field(default=None)
-        order: Optional[List[RoomOrder]] = Field(default=None)
-        pagination: Optional[OffsetPaginationInput] = Field(default=None)
-        model_config = ConfigDict(populate_by_name=True)
+        filter: RoomFilter | None = Field(default=None)
+        order: list[RoomOrder] | None = Field(default=None)
+        pagination: OffsetPaginationInput | None = Field(default=None)
 
     class Meta:
         """Meta class for ListRooms """
         document = 'fragment Room on Room {\n  id\n  title\n  description\n  __typename\n}\n\nquery ListRooms($filter: RoomFilter, $order: [RoomOrder!], $pagination: OffsetPaginationInput) {\n  rooms(filters: $filter, ordering: $order, pagination: $pagination) {\n    ...Room\n    __typename\n  }\n}'
 
 class WatchRoomSubscriptionRoom(BaseModel):
-    """No documentation"""
+    """Something that happened in a room"""
     typename: Literal['RoomEvent'] = Field(alias='__typename', default='RoomEvent', exclude=True)
-    message: Optional[ListMessage] = Field(default=None)
+    message: ListMessage | None = Field(default=None)
     model_config = ConfigDict(frozen=True)
 
 class WatchRoomSubscription(BaseModel):
     """No documentation found for this operation."""
     room: WatchRoomSubscriptionRoom
+    'Join a room and receive its messages as they are posted'
 
     class Arguments(BaseModel):
         """Arguments for WatchRoom """
         room: ID
-        agent_id: ID = Field(alias='agentId')
-        model_config = ConfigDict(populate_by_name=True)
+        agent_id: ID = Field(validation_alias=AliasChoices('agent_id', 'agentId'), serialization_alias='agentId')
 
     class Meta:
         """Meta class for WatchRoom """
         document = 'fragment ListMessage on Message {\n  id\n  text\n  agent {\n    id\n    __typename\n  }\n  attachedStructures {\n    object\n    identifier\n    __typename\n  }\n  __typename\n}\n\nsubscription WatchRoom($room: ID!, $agentId: ID!) {\n  room(room: $room, agentId: $agentId) {\n    message {\n      ...ListMessage\n      __typename\n    }\n    __typename\n  }\n}'
 
-async def achat(messages: Iterable[ChatMessageInput], model: Union[Optional[IDCoercible], UnsetType]=UNSET, tools: Union[Optional[Iterable[ToolInput]], UnsetType]=UNSET, temperature: Union[Optional[float], UnsetType]=UNSET, rath: Optional[AlpakaRath]=None) -> ChatResponse:
+async def achat(messages: Iterable[ChatMessageInput], model: IDCoercible | None | UnsetType=UNSET, tools: Iterable[ToolInput] | None | UnsetType=UNSET, tool_choice: Any | None | UnsetType=UNSET, temperature: float | None | UnsetType=UNSET, max_tokens: int | None | UnsetType=UNSET, top_p: float | None | UnsetType=UNSET, frequency_penalty: float | None | UnsetType=UNSET, presence_penalty: float | None | UnsetType=UNSET, stop: Iterable[str] | None | UnsetType=UNSET, n: int | None | UnsetType=UNSET, response_format: Any | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> ChatResponse:
     """Chat 
 
+Send a chat completion request
 
 Args:
-    model: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID.
     messages: A chat message input (required) (list) (required)
+    model: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID.
     tools: A large language model function call (required) (list)
+    tool_choice: The `JSON` scalar type represents JSON values as specified by [ECMA-404](https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf).
     temperature: The `Float` scalar type represents signed double-precision fractional values as specified by [IEEE 754](https://en.wikipedia.org/wiki/IEEE_floating_point).
+    max_tokens: The `Int` scalar type represents non-fractional signed whole numeric values. Int can represent values between -(2^31) and 2^31 - 1.
+    top_p: The `Float` scalar type represents signed double-precision fractional values as specified by [IEEE 754](https://en.wikipedia.org/wiki/IEEE_floating_point).
+    frequency_penalty: The `Float` scalar type represents signed double-precision fractional values as specified by [IEEE 754](https://en.wikipedia.org/wiki/IEEE_floating_point).
+    presence_penalty: The `Float` scalar type represents signed double-precision fractional values as specified by [IEEE 754](https://en.wikipedia.org/wiki/IEEE_floating_point).
+    stop: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required) (list)
+    n: The `Int` scalar type represents non-fractional signed whole numeric values. Int can represent values between -(2^31) and 2^31 - 1.
+    response_format: The `JSON` scalar type represents JSON values as specified by [ECMA-404](https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf).
     rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     ChatResponse
 """
-    variables: Dict[str, Any] = {}
-    _input: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
+    _input: dict[str, Any] = {}
+    _input['messages'] = messages
     if model is not UNSET:
         _input['model'] = model
-    _input['messages'] = messages
     if tools is not UNSET:
         _input['tools'] = tools
+    if tool_choice is not UNSET:
+        _input['toolChoice'] = tool_choice
     if temperature is not UNSET:
         _input['temperature'] = temperature
+    if max_tokens is not UNSET:
+        _input['maxTokens'] = max_tokens
+    if top_p is not UNSET:
+        _input['topP'] = top_p
+    if frequency_penalty is not UNSET:
+        _input['frequencyPenalty'] = frequency_penalty
+    if presence_penalty is not UNSET:
+        _input['presencePenalty'] = presence_penalty
+    if stop is not UNSET:
+        _input['stop'] = stop
+    if n is not UNSET:
+        _input['n'] = n
+    if response_format is not UNSET:
+        _input['responseFormat'] = response_format
     variables['input'] = _input
     return (await aexecute(ChatMutation, variables, rath=rath)).chat
 
-def chat(messages: Iterable[ChatMessageInput], model: Union[Optional[IDCoercible], UnsetType]=UNSET, tools: Union[Optional[Iterable[ToolInput]], UnsetType]=UNSET, temperature: Union[Optional[float], UnsetType]=UNSET, rath: Optional[AlpakaRath]=None) -> ChatResponse:
+def chat(messages: Iterable[ChatMessageInput], model: IDCoercible | None | UnsetType=UNSET, tools: Iterable[ToolInput] | None | UnsetType=UNSET, tool_choice: Any | None | UnsetType=UNSET, temperature: float | None | UnsetType=UNSET, max_tokens: int | None | UnsetType=UNSET, top_p: float | None | UnsetType=UNSET, frequency_penalty: float | None | UnsetType=UNSET, presence_penalty: float | None | UnsetType=UNSET, stop: Iterable[str] | None | UnsetType=UNSET, n: int | None | UnsetType=UNSET, response_format: Any | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> ChatResponse:
     """Chat 
 
+Send a chat completion request
 
 Args:
-    model: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID.
     messages: A chat message input (required) (list) (required)
+    model: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID.
     tools: A large language model function call (required) (list)
+    tool_choice: The `JSON` scalar type represents JSON values as specified by [ECMA-404](https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf).
     temperature: The `Float` scalar type represents signed double-precision fractional values as specified by [IEEE 754](https://en.wikipedia.org/wiki/IEEE_floating_point).
+    max_tokens: The `Int` scalar type represents non-fractional signed whole numeric values. Int can represent values between -(2^31) and 2^31 - 1.
+    top_p: The `Float` scalar type represents signed double-precision fractional values as specified by [IEEE 754](https://en.wikipedia.org/wiki/IEEE_floating_point).
+    frequency_penalty: The `Float` scalar type represents signed double-precision fractional values as specified by [IEEE 754](https://en.wikipedia.org/wiki/IEEE_floating_point).
+    presence_penalty: The `Float` scalar type represents signed double-precision fractional values as specified by [IEEE 754](https://en.wikipedia.org/wiki/IEEE_floating_point).
+    stop: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required) (list)
+    n: The `Int` scalar type represents non-fractional signed whole numeric values. Int can represent values between -(2^31) and 2^31 - 1.
+    response_format: The `JSON` scalar type represents JSON values as specified by [ECMA-404](https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf).
     rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     ChatResponse
 """
-    variables: Dict[str, Any] = {}
-    _input: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
+    _input: dict[str, Any] = {}
+    _input['messages'] = messages
     if model is not UNSET:
         _input['model'] = model
-    _input['messages'] = messages
     if tools is not UNSET:
         _input['tools'] = tools
+    if tool_choice is not UNSET:
+        _input['toolChoice'] = tool_choice
     if temperature is not UNSET:
         _input['temperature'] = temperature
+    if max_tokens is not UNSET:
+        _input['maxTokens'] = max_tokens
+    if top_p is not UNSET:
+        _input['topP'] = top_p
+    if frequency_penalty is not UNSET:
+        _input['frequencyPenalty'] = frequency_penalty
+    if presence_penalty is not UNSET:
+        _input['presencePenalty'] = presence_penalty
+    if stop is not UNSET:
+        _input['stop'] = stop
+    if n is not UNSET:
+        _input['n'] = n
+    if response_format is not UNSET:
+        _input['responseFormat'] = response_format
     variables['input'] = _input
     return execute(ChatMutation, variables, rath=rath).chat
 
-async def acreate_collection(name: str, embedder: IDCoercible, description: Union[Optional[str], UnsetType]=UNSET, is_public: Union[Optional[bool], UnsetType]=UNSET, rath: Optional[AlpakaRath]=None) -> ChromaCollection:
+async def acreate_collection(name: str, embedder: IDCoercible, description: str | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> ChromaCollection:
     """CreateCollection 
 
+Create a searchable collection of documents
 
 Args:
     name: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required)
     embedder: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID. (required)
     description: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
-    is_public: The `Boolean` scalar type represents `true` or `false`.
     rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     ChromaCollection
 """
-    variables: Dict[str, Any] = {}
-    _input: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
+    _input: dict[str, Any] = {}
     _input['name'] = name
     _input['embedder'] = embedder
     if description is not UNSET:
         _input['description'] = description
-    if is_public is not UNSET:
-        _input['isPublic'] = is_public
     variables['input'] = _input
     return (await aexecute(CreateCollectionMutation, variables, rath=rath)).create_collection
 
-def create_collection(name: str, embedder: IDCoercible, description: Union[Optional[str], UnsetType]=UNSET, is_public: Union[Optional[bool], UnsetType]=UNSET, rath: Optional[AlpakaRath]=None) -> ChromaCollection:
+def create_collection(name: str, embedder: IDCoercible, description: str | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> ChromaCollection:
     """CreateCollection 
 
+Create a searchable collection of documents
 
 Args:
     name: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required)
     embedder: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID. (required)
     description: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
-    is_public: The `Boolean` scalar type represents `true` or `false`.
     rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     ChromaCollection
 """
-    variables: Dict[str, Any] = {}
-    _input: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
+    _input: dict[str, Any] = {}
     _input['name'] = name
     _input['embedder'] = embedder
     if description is not UNSET:
         _input['description'] = description
-    if is_public is not UNSET:
-        _input['isPublic'] = is_public
     variables['input'] = _input
     return execute(CreateCollectionMutation, variables, rath=rath).create_collection
 
-async def aensure_collection(name: str, embedder: IDCoercible, description: Union[Optional[str], UnsetType]=UNSET, is_public: Union[Optional[bool], UnsetType]=UNSET, rath: Optional[AlpakaRath]=None) -> ChromaCollection:
+async def aensure_collection(name: str, embedder: IDCoercible, description: str | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> ChromaCollection:
     """EnsureCollection 
 
+Create a collection, or update it if it already exists
 
 Args:
     name: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required)
     embedder: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID. (required)
     description: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
-    is_public: The `Boolean` scalar type represents `true` or `false`.
     rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     ChromaCollection
 """
-    variables: Dict[str, Any] = {}
-    _input: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
+    _input: dict[str, Any] = {}
     _input['name'] = name
     _input['embedder'] = embedder
     if description is not UNSET:
         _input['description'] = description
-    if is_public is not UNSET:
-        _input['isPublic'] = is_public
     variables['input'] = _input
     return (await aexecute(EnsureCollectionMutation, variables, rath=rath)).ensure_collection
 
-def ensure_collection(name: str, embedder: IDCoercible, description: Union[Optional[str], UnsetType]=UNSET, is_public: Union[Optional[bool], UnsetType]=UNSET, rath: Optional[AlpakaRath]=None) -> ChromaCollection:
+def ensure_collection(name: str, embedder: IDCoercible, description: str | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> ChromaCollection:
     """EnsureCollection 
 
+Create a collection, or update it if it already exists
 
 Args:
     name: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required)
     embedder: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID. (required)
     description: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
-    is_public: The `Boolean` scalar type represents `true` or `false`.
     rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     ChromaCollection
 """
-    variables: Dict[str, Any] = {}
-    _input: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
+    _input: dict[str, Any] = {}
     _input['name'] = name
     _input['embedder'] = embedder
     if description is not UNSET:
         _input['description'] = description
-    if is_public is not UNSET:
-        _input['isPublic'] = is_public
     variables['input'] = _input
     return execute(EnsureCollectionMutation, variables, rath=rath).ensure_collection
 
-async def aadd_documents_to_collection(collection: IDCoercible, documents: Iterable[DocumentInput], rath: Optional[AlpakaRath]=None) -> Tuple[Document, ...]:
+async def aadd_documents_to_collection(collection: IDCoercible, documents: Iterable[DocumentInput], rath: AlpakaRath | None=None) -> tuple[Document, ...]:
     """AddDocumentsToCollection 
 
+Embed documents and add them to a collection
 
 Args:
     collection: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID. (required)
@@ -1040,18 +1139,19 @@ Args:
     rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
-    List[Document]
+    list[Document]
 """
-    variables: Dict[str, Any] = {}
-    _input: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
+    _input: dict[str, Any] = {}
     _input['collection'] = collection
     _input['documents'] = documents
     variables['input'] = _input
     return (await aexecute(AddDocumentsToCollectionMutation, variables, rath=rath)).add_documents_to_collection
 
-def add_documents_to_collection(collection: IDCoercible, documents: Iterable[DocumentInput], rath: Optional[AlpakaRath]=None) -> Tuple[Document, ...]:
+def add_documents_to_collection(collection: IDCoercible, documents: Iterable[DocumentInput], rath: AlpakaRath | None=None) -> tuple[Document, ...]:
     """AddDocumentsToCollection 
 
+Embed documents and add them to a collection
 
 Args:
     collection: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID. (required)
@@ -1059,18 +1159,19 @@ Args:
     rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
-    List[Document]
+    list[Document]
 """
-    variables: Dict[str, Any] = {}
-    _input: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
+    _input: dict[str, Any] = {}
     _input['collection'] = collection
     _input['documents'] = documents
     variables['input'] = _input
     return execute(AddDocumentsToCollectionMutation, variables, rath=rath).add_documents_to_collection
 
-async def agenerate_image(description: str, model: Union[Optional[IDCoercible], UnsetType]=UNSET, rath: Optional[AlpakaRath]=None) -> GenerateImageMutationGenerateimage:
+async def agenerate_image(description: str, model: IDCoercible | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> GenerateImageMutationGenerateImage:
     """GenerateImage 
 
+Generate an image from a text description
 
 Args:
     model: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID.
@@ -1078,19 +1179,20 @@ Args:
     rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
-    GenerateImageMutationGenerateimage
+    GenerateImageMutationGenerateImage
 """
-    variables: Dict[str, Any] = {}
-    _input: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
+    _input: dict[str, Any] = {}
     if model is not UNSET:
         _input['model'] = model
     _input['description'] = description
     variables['input'] = _input
     return (await aexecute(GenerateImageMutation, variables, rath=rath)).generate_image
 
-def generate_image(description: str, model: Union[Optional[IDCoercible], UnsetType]=UNSET, rath: Optional[AlpakaRath]=None) -> GenerateImageMutationGenerateimage:
+def generate_image(description: str, model: IDCoercible | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> GenerateImageMutationGenerateImage:
     """GenerateImage 
 
+Generate an image from a text description
 
 Args:
     model: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID.
@@ -1098,31 +1200,32 @@ Args:
     rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
-    GenerateImageMutationGenerateimage
+    GenerateImageMutationGenerateImage
 """
-    variables: Dict[str, Any] = {}
-    _input: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
+    _input: dict[str, Any] = {}
     if model is not UNSET:
         _input['model'] = model
     _input['description'] = description
     variables['input'] = _input
     return execute(GenerateImageMutation, variables, rath=rath).generate_image
 
-async def asend(text: str, room: ID, agent_id: str, attach_structures: Union[Optional[List[StructureInput]], UnsetType]=UNSET, rath: Optional[AlpakaRath]=None) -> Message:
+async def asend(text: str, room: IDCoercible, agent_id: str, attach_structures: list[StructureInput] | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> Message:
     """Send 
 
+Post a message into a room
 
 Args:
     text (str): No description
     room (ID): No description
     agent_id (str): No description
-    attach_structures (Optional[List[StructureInput]], optional): No description. 
+    attach_structures (list[StructureInput] | None, optional): No description. 
     rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     Message
 """
-    variables: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
     variables['text'] = text
     variables['room'] = room
     variables['agentId'] = agent_id
@@ -1130,21 +1233,22 @@ Returns:
         variables['attachStructures'] = attach_structures
     return (await aexecute(SendMutation, variables, rath=rath)).send
 
-def send(text: str, room: ID, agent_id: str, attach_structures: Union[Optional[List[StructureInput]], UnsetType]=UNSET, rath: Optional[AlpakaRath]=None) -> Message:
+def send(text: str, room: IDCoercible, agent_id: str, attach_structures: list[StructureInput] | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> Message:
     """Send 
 
+Post a message into a room
 
 Args:
     text (str): No description
     room (ID): No description
     agent_id (str): No description
-    attach_structures (Optional[List[StructureInput]], optional): No description. 
+    attach_structures (list[StructureInput] | None, optional): No description. 
     rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     Message
 """
-    variables: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
     variables['text'] = text
     variables['room'] = room
     variables['agentId'] = agent_id
@@ -1152,9 +1256,10 @@ Returns:
         variables['attachStructures'] = attach_structures
     return execute(SendMutation, variables, rath=rath).send
 
-async def acreate_provider(kind: ProviderKind, description: Union[Optional[str], UnsetType]=UNSET, name: Union[Optional[str], UnsetType]=UNSET, api_key: Union[Optional[str], UnsetType]=UNSET, api_base: Union[Optional[str], UnsetType]=UNSET, additional_config: Union[Optional[Any], UnsetType]=UNSET, rath: Optional[AlpakaRath]=None) -> Provider:
+async def acreate_provider(kind: ProviderKind, description: str | None | UnsetType=UNSET, name: str | None | UnsetType=UNSET, api_key: str | None | UnsetType=UNSET, api_base: str | None | UnsetType=UNSET, additional_config: Any | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> Provider:
     """CreateProvider 
 
+Configure a new LLM provider and list the models it offers
 
 Args:
     description: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
@@ -1168,8 +1273,8 @@ Args:
 Returns:
     Provider
 """
-    variables: Dict[str, Any] = {}
-    _input: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
+    _input: dict[str, Any] = {}
     if description is not UNSET:
         _input['description'] = description
     if name is not UNSET:
@@ -1184,9 +1289,10 @@ Returns:
     variables['input'] = _input
     return (await aexecute(CreateProviderMutation, variables, rath=rath)).create_provider
 
-def create_provider(kind: ProviderKind, description: Union[Optional[str], UnsetType]=UNSET, name: Union[Optional[str], UnsetType]=UNSET, api_key: Union[Optional[str], UnsetType]=UNSET, api_base: Union[Optional[str], UnsetType]=UNSET, additional_config: Union[Optional[Any], UnsetType]=UNSET, rath: Optional[AlpakaRath]=None) -> Provider:
+def create_provider(kind: ProviderKind, description: str | None | UnsetType=UNSET, name: str | None | UnsetType=UNSET, api_key: str | None | UnsetType=UNSET, api_base: str | None | UnsetType=UNSET, additional_config: Any | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> Provider:
     """CreateProvider 
 
+Configure a new LLM provider and list the models it offers
 
 Args:
     description: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
@@ -1200,8 +1306,8 @@ Args:
 Returns:
     Provider
 """
-    variables: Dict[str, Any] = {}
-    _input: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
+    _input: dict[str, Any] = {}
     if description is not UNSET:
         _input['description'] = description
     if name is not UNSET:
@@ -1216,81 +1322,92 @@ Returns:
     variables['input'] = _input
     return execute(CreateProviderMutation, variables, rath=rath).create_provider
 
-async def apull(model_name: str, rath: Optional[AlpakaRath]=None) -> PullMutationPull:
+async def apull(model_name: str, provider: IDCoercible | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> PullMutationPull:
     """Pull 
 
+Pull a model into an Ollama provider
 
 Args:
     model_name: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required)
+    provider: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID.
     rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     PullMutationPull
 """
-    variables: Dict[str, Any] = {}
-    _input: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
+    _input: dict[str, Any] = {}
     _input['modelName'] = model_name
+    if provider is not UNSET:
+        _input['provider'] = provider
     variables['input'] = _input
     return (await aexecute(PullMutation, variables, rath=rath)).pull
 
-def pull(model_name: str, rath: Optional[AlpakaRath]=None) -> PullMutationPull:
+def pull(model_name: str, provider: IDCoercible | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> PullMutationPull:
     """Pull 
 
+Pull a model into an Ollama provider
 
 Args:
     model_name: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required)
+    provider: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID.
     rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     PullMutationPull
 """
-    variables: Dict[str, Any] = {}
-    _input: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
+    _input: dict[str, Any] = {}
     _input['modelName'] = model_name
+    if provider is not UNSET:
+        _input['provider'] = provider
     variables['input'] = _input
     return execute(PullMutation, variables, rath=rath).pull
 
-async def acreate_room(title: Union[Optional[str], UnsetType]=UNSET, description: Union[Optional[str], UnsetType]=UNSET, rath: Optional[AlpakaRath]=None) -> Room:
+async def acreate_room(title: str | None | UnsetType=UNSET, description: str | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> Room:
     """CreateRoom 
 
+Open a new room
 
 Args:
-    title (Optional[str], optional): No description. 
-    description (Optional[str], optional): No description. 
+    title (str | None, optional): No description. 
+    description (str | None, optional): No description. 
     rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     Room
 """
-    variables: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
     if title is not UNSET:
         variables['title'] = title
     if description is not UNSET:
         variables['description'] = description
     return (await aexecute(CreateRoomMutation, variables, rath=rath)).create_room
 
-def create_room(title: Union[Optional[str], UnsetType]=UNSET, description: Union[Optional[str], UnsetType]=UNSET, rath: Optional[AlpakaRath]=None) -> Room:
+def create_room(title: str | None | UnsetType=UNSET, description: str | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> Room:
     """CreateRoom 
 
+Open a new room
 
 Args:
-    title (Optional[str], optional): No description. 
-    description (Optional[str], optional): No description. 
+    title (str | None, optional): No description. 
+    description (str | None, optional): No description. 
     rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
     Room
 """
-    variables: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
     if title is not UNSET:
         variables['title'] = title
     if description is not UNSET:
         variables['description'] = description
     return execute(CreateRoomMutation, variables, rath=rath).create_room
 
-async def aget_chroma_collection(id: ID, rath: Optional[AlpakaRath]=None) -> ChromaCollection:
+async def aget_chroma_collection(id: IDCoercible, rath: AlpakaRath | None=None) -> ChromaCollection:
     """GetChromaCollection 
 
+Get a single Chroma collection by ID
 
 Args:
     id (ID): No description
@@ -1299,13 +1416,14 @@ Args:
 Returns:
     ChromaCollection
 """
-    variables: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
     variables['id'] = id
     return (await aexecute(GetChromaCollectionQuery, variables, rath=rath)).chroma_collection
 
-def get_chroma_collection(id: ID, rath: Optional[AlpakaRath]=None) -> ChromaCollection:
+def get_chroma_collection(id: IDCoercible, rath: AlpakaRath | None=None) -> ChromaCollection:
     """GetChromaCollection 
 
+Get a single Chroma collection by ID
 
 Args:
     id (ID): No description
@@ -1314,25 +1432,26 @@ Args:
 Returns:
     ChromaCollection
 """
-    variables: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
     variables['id'] = id
     return execute(GetChromaCollectionQuery, variables, rath=rath).chroma_collection
 
-async def asearch_chroma_collection(search: Union[Optional[str], UnsetType]=UNSET, values: Union[Optional[List[ID]], UnsetType]=UNSET, limit: Union[Optional[int], UnsetType]=UNSET, offset: Union[Optional[int], UnsetType]=UNSET, rath: Optional[AlpakaRath]=None) -> Tuple[SearchChromaCollectionQueryOptions, ...]:
+async def asearch_chroma_collection(search: str | None | UnsetType=UNSET, values: list[IDCoercible] | None | UnsetType=UNSET, limit: int | None | UnsetType=UNSET, offset: int | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> tuple[SearchChromaCollectionQueryOptions, ...]:
     """SearchChromaCollection 
 
+List this organization's Chroma collections
 
 Args:
-    search (Optional[str], optional): No description. 
-    values (Optional[List[ID]], optional): No description. 
-    limit (Optional[int], optional): No description. Defaults to 10
-    offset (Optional[int], optional): No description. Defaults to 0
+    search (str | None, optional): No description. 
+    values (list[ID] | None, optional): No description. 
+    limit (int | None, optional): No description. Defaults to 10
+    offset (int | None, optional): No description. Defaults to 0
     rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
-    List[SearchChromaCollectionQueryChromacollections]
+    list[SearchChromaCollectionQueryChromaCollections]
 """
-    variables: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
     if search is not UNSET:
         variables['search'] = search
     if values is not UNSET:
@@ -1343,21 +1462,22 @@ Returns:
         variables['offset'] = offset
     return (await aexecute(SearchChromaCollectionQuery, variables, rath=rath)).options
 
-def search_chroma_collection(search: Union[Optional[str], UnsetType]=UNSET, values: Union[Optional[List[ID]], UnsetType]=UNSET, limit: Union[Optional[int], UnsetType]=UNSET, offset: Union[Optional[int], UnsetType]=UNSET, rath: Optional[AlpakaRath]=None) -> Tuple[SearchChromaCollectionQueryOptions, ...]:
+def search_chroma_collection(search: str | None | UnsetType=UNSET, values: list[IDCoercible] | None | UnsetType=UNSET, limit: int | None | UnsetType=UNSET, offset: int | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> tuple[SearchChromaCollectionQueryOptions, ...]:
     """SearchChromaCollection 
 
+List this organization's Chroma collections
 
 Args:
-    search (Optional[str], optional): No description. 
-    values (Optional[List[ID]], optional): No description. 
-    limit (Optional[int], optional): No description. Defaults to 10
-    offset (Optional[int], optional): No description. Defaults to 0
+    search (str | None, optional): No description. 
+    values (list[ID] | None, optional): No description. 
+    limit (int | None, optional): No description. Defaults to 10
+    offset (int | None, optional): No description. Defaults to 0
     rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
-    List[SearchChromaCollectionQueryChromacollections]
+    list[SearchChromaCollectionQueryChromaCollections]
 """
-    variables: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
     if search is not UNSET:
         variables['search'] = search
     if values is not UNSET:
@@ -1368,20 +1488,21 @@ Returns:
         variables['offset'] = offset
     return execute(SearchChromaCollectionQuery, variables, rath=rath).options
 
-async def alist_chroma_collections(filter: Union[Optional[ChromaCollectionFilter], UnsetType]=UNSET, order: Union[Optional[List[ChromaCollectionOrder]], UnsetType]=UNSET, pagination: Union[Optional[OffsetPaginationInput], UnsetType]=UNSET, rath: Optional[AlpakaRath]=None) -> Tuple[ChromaCollection, ...]:
+async def alist_chroma_collections(filter: ChromaCollectionFilter | None | UnsetType=UNSET, order: list[ChromaCollectionOrder] | None | UnsetType=UNSET, pagination: OffsetPaginationInput | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> tuple[ChromaCollection, ...]:
     """ListChromaCollections 
 
+List this organization's Chroma collections
 
 Args:
-    filter (Optional[ChromaCollectionFilter], optional): No description. 
-    order (Optional[List[ChromaCollectionOrder]], optional): No description. 
-    pagination (Optional[OffsetPaginationInput], optional): No description. 
+    filter (ChromaCollectionFilter | None, optional): No description. 
+    order (list[ChromaCollectionOrder] | None, optional): No description. 
+    pagination (OffsetPaginationInput | None, optional): No description. 
     rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
-    List[ChromaCollection]
+    list[ChromaCollection]
 """
-    variables: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
     if filter is not UNSET:
         variables['filter'] = filter
     if order is not UNSET:
@@ -1390,20 +1511,21 @@ Returns:
         variables['pagination'] = pagination
     return (await aexecute(ListChromaCollectionsQuery, variables, rath=rath)).chroma_collections
 
-def list_chroma_collections(filter: Union[Optional[ChromaCollectionFilter], UnsetType]=UNSET, order: Union[Optional[List[ChromaCollectionOrder]], UnsetType]=UNSET, pagination: Union[Optional[OffsetPaginationInput], UnsetType]=UNSET, rath: Optional[AlpakaRath]=None) -> Tuple[ChromaCollection, ...]:
+def list_chroma_collections(filter: ChromaCollectionFilter | None | UnsetType=UNSET, order: list[ChromaCollectionOrder] | None | UnsetType=UNSET, pagination: OffsetPaginationInput | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> tuple[ChromaCollection, ...]:
     """ListChromaCollections 
 
+List this organization's Chroma collections
 
 Args:
-    filter (Optional[ChromaCollectionFilter], optional): No description. 
-    order (Optional[List[ChromaCollectionOrder]], optional): No description. 
-    pagination (Optional[OffsetPaginationInput], optional): No description. 
+    filter (ChromaCollectionFilter | None, optional): No description. 
+    order (list[ChromaCollectionOrder] | None, optional): No description. 
+    pagination (OffsetPaginationInput | None, optional): No description. 
     rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
-    List[ChromaCollection]
+    list[ChromaCollection]
 """
-    variables: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
     if filter is not UNSET:
         variables['filter'] = filter
     if order is not UNSET:
@@ -1412,55 +1534,60 @@ Returns:
         variables['pagination'] = pagination
     return execute(ListChromaCollectionsQuery, variables, rath=rath).chroma_collections
 
-async def aquery_documents(collection: ID, query_texts: List[str], n_results: Union[Optional[int], UnsetType]=UNSET, where: Union[Optional[Any], UnsetType]=UNSET, rath: Optional[AlpakaRath]=None) -> Tuple[Document, ...]:
+async def aquery_documents(collection: IDCoercible, query_texts: Iterable[str], n_results: int, where: Any | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> tuple[Document, ...]:
     """QueryDocuments 
 
+Search a collection for the documents most similar to some text
 
 Args:
-    collection (ID): No description
-    query_texts (List[str]): No description
-    n_results (Optional[int], optional): No description. 
-    where (Optional[Any], optional): No description. 
+    collection: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID. (required)
+    query_texts: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required) (list) (required)
+    n_results: The `Int` scalar type represents non-fractional signed whole numeric values. Int can represent values between -(2^31) and 2^31 - 1. (required)
+    where: The `JSON` scalar type represents JSON values as specified by [ECMA-404](https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf).
     rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
-    List[Document]
+    list[Document]
 """
-    variables: Dict[str, Any] = {}
-    variables['collection'] = collection
-    variables['queryTexts'] = query_texts
-    if n_results is not UNSET:
-        variables['nResults'] = n_results
+    variables: dict[str, Any] = {}
+    _input: dict[str, Any] = {}
+    _input['collection'] = collection
+    _input['queryTexts'] = query_texts
+    _input['nResults'] = n_results
     if where is not UNSET:
-        variables['where'] = where
+        _input['where'] = where
+    variables['input'] = _input
     return (await aexecute(QueryDocumentsQuery, variables, rath=rath)).documents
 
-def query_documents(collection: ID, query_texts: List[str], n_results: Union[Optional[int], UnsetType]=UNSET, where: Union[Optional[Any], UnsetType]=UNSET, rath: Optional[AlpakaRath]=None) -> Tuple[Document, ...]:
+def query_documents(collection: IDCoercible, query_texts: Iterable[str], n_results: int, where: Any | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> tuple[Document, ...]:
     """QueryDocuments 
 
+Search a collection for the documents most similar to some text
 
 Args:
-    collection (ID): No description
-    query_texts (List[str]): No description
-    n_results (Optional[int], optional): No description. 
-    where (Optional[Any], optional): No description. 
+    collection: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID. (required)
+    query_texts: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required) (list) (required)
+    n_results: The `Int` scalar type represents non-fractional signed whole numeric values. Int can represent values between -(2^31) and 2^31 - 1. (required)
+    where: The `JSON` scalar type represents JSON values as specified by [ECMA-404](https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf).
     rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
-    List[Document]
+    list[Document]
 """
-    variables: Dict[str, Any] = {}
-    variables['collection'] = collection
-    variables['queryTexts'] = query_texts
-    if n_results is not UNSET:
-        variables['nResults'] = n_results
+    variables: dict[str, Any] = {}
+    _input: dict[str, Any] = {}
+    _input['collection'] = collection
+    _input['queryTexts'] = query_texts
+    _input['nResults'] = n_results
     if where is not UNSET:
-        variables['where'] = where
+        _input['where'] = where
+    variables['input'] = _input
     return execute(QueryDocumentsQuery, variables, rath=rath).documents
 
-async def aget_llm_model(id: ID, rath: Optional[AlpakaRath]=None) -> LLMModel:
+async def aget_llm_model(id: IDCoercible, rath: AlpakaRath | None=None) -> LLMModel:
     """GetLLMModel 
 
+Get a single LLM model by ID
 
 Args:
     id (ID): No description
@@ -1469,13 +1596,14 @@ Args:
 Returns:
     LLMModel
 """
-    variables: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
     variables['id'] = id
     return (await aexecute(GetLLMModelQuery, variables, rath=rath)).llm_model
 
-def get_llm_model(id: ID, rath: Optional[AlpakaRath]=None) -> LLMModel:
+def get_llm_model(id: IDCoercible, rath: AlpakaRath | None=None) -> LLMModel:
     """GetLLMModel 
 
+Get a single LLM model by ID
 
 Args:
     id (ID): No description
@@ -1484,25 +1612,26 @@ Args:
 Returns:
     LLMModel
 """
-    variables: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
     variables['id'] = id
     return execute(GetLLMModelQuery, variables, rath=rath).llm_model
 
-async def asearch_llm_models(search: Union[Optional[str], UnsetType]=UNSET, values: Union[Optional[List[ID]], UnsetType]=UNSET, limit: Union[Optional[int], UnsetType]=UNSET, offset: Union[Optional[int], UnsetType]=UNSET, rath: Optional[AlpakaRath]=None) -> Tuple[SearchLLMModelsQueryOptions, ...]:
+async def asearch_llm_models(search: str | None | UnsetType=UNSET, values: list[IDCoercible] | None | UnsetType=UNSET, limit: int | None | UnsetType=UNSET, offset: int | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> tuple[SearchLLMModelsQueryOptions, ...]:
     """SearchLLMModels 
 
+List the LLM models reachable through this organization's providers
 
 Args:
-    search (Optional[str], optional): No description. 
-    values (Optional[List[ID]], optional): No description. 
-    limit (Optional[int], optional): No description. Defaults to 10
-    offset (Optional[int], optional): No description. Defaults to 0
+    search (str | None, optional): No description. 
+    values (list[ID] | None, optional): No description. 
+    limit (int | None, optional): No description. Defaults to 10
+    offset (int | None, optional): No description. Defaults to 0
     rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
-    List[SearchLLMModelsQueryLlmmodels]
+    list[SearchLLMModelsQueryLlmModels]
 """
-    variables: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
     if search is not UNSET:
         variables['search'] = search
     if values is not UNSET:
@@ -1513,21 +1642,22 @@ Returns:
         variables['offset'] = offset
     return (await aexecute(SearchLLMModelsQuery, variables, rath=rath)).options
 
-def search_llm_models(search: Union[Optional[str], UnsetType]=UNSET, values: Union[Optional[List[ID]], UnsetType]=UNSET, limit: Union[Optional[int], UnsetType]=UNSET, offset: Union[Optional[int], UnsetType]=UNSET, rath: Optional[AlpakaRath]=None) -> Tuple[SearchLLMModelsQueryOptions, ...]:
+def search_llm_models(search: str | None | UnsetType=UNSET, values: list[IDCoercible] | None | UnsetType=UNSET, limit: int | None | UnsetType=UNSET, offset: int | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> tuple[SearchLLMModelsQueryOptions, ...]:
     """SearchLLMModels 
 
+List the LLM models reachable through this organization's providers
 
 Args:
-    search (Optional[str], optional): No description. 
-    values (Optional[List[ID]], optional): No description. 
-    limit (Optional[int], optional): No description. Defaults to 10
-    offset (Optional[int], optional): No description. Defaults to 0
+    search (str | None, optional): No description. 
+    values (list[ID] | None, optional): No description. 
+    limit (int | None, optional): No description. Defaults to 10
+    offset (int | None, optional): No description. Defaults to 0
     rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
-    List[SearchLLMModelsQueryLlmmodels]
+    list[SearchLLMModelsQueryLlmModels]
 """
-    variables: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
     if search is not UNSET:
         variables['search'] = search
     if values is not UNSET:
@@ -1538,20 +1668,21 @@ Returns:
         variables['offset'] = offset
     return execute(SearchLLMModelsQuery, variables, rath=rath).options
 
-async def alist_ll_models(filter: Union[Optional[LLMModelFilter], UnsetType]=UNSET, order: Union[Optional[List[LLMModelOrder]], UnsetType]=UNSET, pagination: Union[Optional[OffsetPaginationInput], UnsetType]=UNSET, rath: Optional[AlpakaRath]=None) -> Tuple[LLMModel, ...]:
+async def alist_ll_models(filter: LLMModelFilter | None | UnsetType=UNSET, order: list[LLMModelOrder] | None | UnsetType=UNSET, pagination: OffsetPaginationInput | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> tuple[LLMModel, ...]:
     """ListLLModels 
 
+List the LLM models reachable through this organization's providers
 
 Args:
-    filter (Optional[LLMModelFilter], optional): No description. 
-    order (Optional[List[LLMModelOrder]], optional): No description. 
-    pagination (Optional[OffsetPaginationInput], optional): No description. 
+    filter (LLMModelFilter | None, optional): No description. 
+    order (list[LLMModelOrder] | None, optional): No description. 
+    pagination (OffsetPaginationInput | None, optional): No description. 
     rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
-    List[LLMModel]
+    list[LLMModel]
 """
-    variables: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
     if filter is not UNSET:
         variables['filter'] = filter
     if order is not UNSET:
@@ -1560,20 +1691,21 @@ Returns:
         variables['pagination'] = pagination
     return (await aexecute(ListLLModelsQuery, variables, rath=rath)).llm_models
 
-def list_ll_models(filter: Union[Optional[LLMModelFilter], UnsetType]=UNSET, order: Union[Optional[List[LLMModelOrder]], UnsetType]=UNSET, pagination: Union[Optional[OffsetPaginationInput], UnsetType]=UNSET, rath: Optional[AlpakaRath]=None) -> Tuple[LLMModel, ...]:
+def list_ll_models(filter: LLMModelFilter | None | UnsetType=UNSET, order: list[LLMModelOrder] | None | UnsetType=UNSET, pagination: OffsetPaginationInput | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> tuple[LLMModel, ...]:
     """ListLLModels 
 
+List the LLM models reachable through this organization's providers
 
 Args:
-    filter (Optional[LLMModelFilter], optional): No description. 
-    order (Optional[List[LLMModelOrder]], optional): No description. 
-    pagination (Optional[OffsetPaginationInput], optional): No description. 
+    filter (LLMModelFilter | None, optional): No description. 
+    order (list[LLMModelOrder] | None, optional): No description. 
+    pagination (OffsetPaginationInput | None, optional): No description. 
     rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
-    List[LLMModel]
+    list[LLMModel]
 """
-    variables: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
     if filter is not UNSET:
         variables['filter'] = filter
     if order is not UNSET:
@@ -1582,9 +1714,10 @@ Returns:
         variables['pagination'] = pagination
     return execute(ListLLModelsQuery, variables, rath=rath).llm_models
 
-async def aget_message(id: ID, rath: Optional[AlpakaRath]=None) -> Message:
+async def aget_message(id: IDCoercible, rath: AlpakaRath | None=None) -> Message:
     """GetMessage 
 
+Get a single message by ID
 
 Args:
     id (ID): No description
@@ -1593,13 +1726,14 @@ Args:
 Returns:
     Message
 """
-    variables: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
     variables['id'] = id
     return (await aexecute(GetMessageQuery, variables, rath=rath)).message
 
-def get_message(id: ID, rath: Optional[AlpakaRath]=None) -> Message:
+def get_message(id: IDCoercible, rath: AlpakaRath | None=None) -> Message:
     """GetMessage 
 
+Get a single message by ID
 
 Args:
     id (ID): No description
@@ -1608,25 +1742,26 @@ Args:
 Returns:
     Message
 """
-    variables: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
     variables['id'] = id
     return execute(GetMessageQuery, variables, rath=rath).message
 
-async def asearch_messages(search: Union[Optional[str], UnsetType]=UNSET, values: Union[Optional[List[ID]], UnsetType]=UNSET, limit: Union[Optional[int], UnsetType]=UNSET, offset: Union[Optional[int], UnsetType]=UNSET, rath: Optional[AlpakaRath]=None) -> Tuple[SearchMessagesQueryOptions, ...]:
+async def asearch_messages(search: str | None | UnsetType=UNSET, values: list[IDCoercible] | None | UnsetType=UNSET, limit: int | None | UnsetType=UNSET, offset: int | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> tuple[SearchMessagesQueryOptions, ...]:
     """SearchMessages 
 
+List the messages in this organization's rooms
 
 Args:
-    search (Optional[str], optional): No description. 
-    values (Optional[List[ID]], optional): No description. 
-    limit (Optional[int], optional): No description. Defaults to 10
-    offset (Optional[int], optional): No description. Defaults to 0
+    search (str | None, optional): No description. 
+    values (list[ID] | None, optional): No description. 
+    limit (int | None, optional): No description. Defaults to 10
+    offset (int | None, optional): No description. Defaults to 0
     rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
-    List[SearchMessagesQueryMessages]
+    list[SearchMessagesQueryMessages]
 """
-    variables: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
     if search is not UNSET:
         variables['search'] = search
     if values is not UNSET:
@@ -1637,21 +1772,22 @@ Returns:
         variables['offset'] = offset
     return (await aexecute(SearchMessagesQuery, variables, rath=rath)).options
 
-def search_messages(search: Union[Optional[str], UnsetType]=UNSET, values: Union[Optional[List[ID]], UnsetType]=UNSET, limit: Union[Optional[int], UnsetType]=UNSET, offset: Union[Optional[int], UnsetType]=UNSET, rath: Optional[AlpakaRath]=None) -> Tuple[SearchMessagesQueryOptions, ...]:
+def search_messages(search: str | None | UnsetType=UNSET, values: list[IDCoercible] | None | UnsetType=UNSET, limit: int | None | UnsetType=UNSET, offset: int | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> tuple[SearchMessagesQueryOptions, ...]:
     """SearchMessages 
 
+List the messages in this organization's rooms
 
 Args:
-    search (Optional[str], optional): No description. 
-    values (Optional[List[ID]], optional): No description. 
-    limit (Optional[int], optional): No description. Defaults to 10
-    offset (Optional[int], optional): No description. Defaults to 0
+    search (str | None, optional): No description. 
+    values (list[ID] | None, optional): No description. 
+    limit (int | None, optional): No description. Defaults to 10
+    offset (int | None, optional): No description. Defaults to 0
     rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
-    List[SearchMessagesQueryMessages]
+    list[SearchMessagesQueryMessages]
 """
-    variables: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
     if search is not UNSET:
         variables['search'] = search
     if values is not UNSET:
@@ -1662,20 +1798,21 @@ Returns:
         variables['offset'] = offset
     return execute(SearchMessagesQuery, variables, rath=rath).options
 
-async def alist_messages(filter: Union[Optional[MessageFilter], UnsetType]=UNSET, order: Union[Optional[List[MessageOrder]], UnsetType]=UNSET, pagination: Union[Optional[OffsetPaginationInput], UnsetType]=UNSET, rath: Optional[AlpakaRath]=None) -> Tuple[ListMessage, ...]:
+async def alist_messages(filter: MessageFilter | None | UnsetType=UNSET, order: list[MessageOrder] | None | UnsetType=UNSET, pagination: OffsetPaginationInput | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> tuple[ListMessage, ...]:
     """ListMessages 
 
+List the messages in this organization's rooms
 
 Args:
-    filter (Optional[MessageFilter], optional): No description. 
-    order (Optional[List[MessageOrder]], optional): No description. 
-    pagination (Optional[OffsetPaginationInput], optional): No description. 
+    filter (MessageFilter | None, optional): No description. 
+    order (list[MessageOrder] | None, optional): No description. 
+    pagination (OffsetPaginationInput | None, optional): No description. 
     rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
-    List[ListMessage]
+    list[ListMessage]
 """
-    variables: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
     if filter is not UNSET:
         variables['filter'] = filter
     if order is not UNSET:
@@ -1684,20 +1821,21 @@ Returns:
         variables['pagination'] = pagination
     return (await aexecute(ListMessagesQuery, variables, rath=rath)).messages
 
-def list_messages(filter: Union[Optional[MessageFilter], UnsetType]=UNSET, order: Union[Optional[List[MessageOrder]], UnsetType]=UNSET, pagination: Union[Optional[OffsetPaginationInput], UnsetType]=UNSET, rath: Optional[AlpakaRath]=None) -> Tuple[ListMessage, ...]:
+def list_messages(filter: MessageFilter | None | UnsetType=UNSET, order: list[MessageOrder] | None | UnsetType=UNSET, pagination: OffsetPaginationInput | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> tuple[ListMessage, ...]:
     """ListMessages 
 
+List the messages in this organization's rooms
 
 Args:
-    filter (Optional[MessageFilter], optional): No description. 
-    order (Optional[List[MessageOrder]], optional): No description. 
-    pagination (Optional[OffsetPaginationInput], optional): No description. 
+    filter (MessageFilter | None, optional): No description. 
+    order (list[MessageOrder] | None, optional): No description. 
+    pagination (OffsetPaginationInput | None, optional): No description. 
     rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
-    List[ListMessage]
+    list[ListMessage]
 """
-    variables: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
     if filter is not UNSET:
         variables['filter'] = filter
     if order is not UNSET:
@@ -1706,9 +1844,10 @@ Returns:
         variables['pagination'] = pagination
     return execute(ListMessagesQuery, variables, rath=rath).messages
 
-async def aget_room(id: ID, rath: Optional[AlpakaRath]=None) -> Room:
+async def aget_room(id: IDCoercible, rath: AlpakaRath | None=None) -> Room:
     """GetRoom 
 
+Get a single room by ID
 
 Args:
     id (ID): No description
@@ -1717,13 +1856,14 @@ Args:
 Returns:
     Room
 """
-    variables: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
     variables['id'] = id
     return (await aexecute(GetRoomQuery, variables, rath=rath)).room
 
-def get_room(id: ID, rath: Optional[AlpakaRath]=None) -> Room:
+def get_room(id: IDCoercible, rath: AlpakaRath | None=None) -> Room:
     """GetRoom 
 
+Get a single room by ID
 
 Args:
     id (ID): No description
@@ -1732,25 +1872,26 @@ Args:
 Returns:
     Room
 """
-    variables: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
     variables['id'] = id
     return execute(GetRoomQuery, variables, rath=rath).room
 
-async def asearch_rooms(search: Union[Optional[str], UnsetType]=UNSET, values: Union[Optional[List[ID]], UnsetType]=UNSET, limit: Union[Optional[int], UnsetType]=UNSET, offset: Union[Optional[int], UnsetType]=UNSET, rath: Optional[AlpakaRath]=None) -> Tuple[SearchRoomsQueryOptions, ...]:
+async def asearch_rooms(search: str | None | UnsetType=UNSET, values: list[IDCoercible] | None | UnsetType=UNSET, limit: int | None | UnsetType=UNSET, offset: int | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> tuple[SearchRoomsQueryOptions, ...]:
     """SearchRooms 
 
+List the rooms in this organization
 
 Args:
-    search (Optional[str], optional): No description. 
-    values (Optional[List[ID]], optional): No description. 
-    limit (Optional[int], optional): No description. Defaults to 10
-    offset (Optional[int], optional): No description. Defaults to 0
+    search (str | None, optional): No description. 
+    values (list[ID] | None, optional): No description. 
+    limit (int | None, optional): No description. Defaults to 10
+    offset (int | None, optional): No description. Defaults to 0
     rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
-    List[SearchRoomsQueryRooms]
+    list[SearchRoomsQueryRooms]
 """
-    variables: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
     if search is not UNSET:
         variables['search'] = search
     if values is not UNSET:
@@ -1761,21 +1902,22 @@ Returns:
         variables['offset'] = offset
     return (await aexecute(SearchRoomsQuery, variables, rath=rath)).options
 
-def search_rooms(search: Union[Optional[str], UnsetType]=UNSET, values: Union[Optional[List[ID]], UnsetType]=UNSET, limit: Union[Optional[int], UnsetType]=UNSET, offset: Union[Optional[int], UnsetType]=UNSET, rath: Optional[AlpakaRath]=None) -> Tuple[SearchRoomsQueryOptions, ...]:
+def search_rooms(search: str | None | UnsetType=UNSET, values: list[IDCoercible] | None | UnsetType=UNSET, limit: int | None | UnsetType=UNSET, offset: int | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> tuple[SearchRoomsQueryOptions, ...]:
     """SearchRooms 
 
+List the rooms in this organization
 
 Args:
-    search (Optional[str], optional): No description. 
-    values (Optional[List[ID]], optional): No description. 
-    limit (Optional[int], optional): No description. Defaults to 10
-    offset (Optional[int], optional): No description. Defaults to 0
+    search (str | None, optional): No description. 
+    values (list[ID] | None, optional): No description. 
+    limit (int | None, optional): No description. Defaults to 10
+    offset (int | None, optional): No description. Defaults to 0
     rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
-    List[SearchRoomsQueryRooms]
+    list[SearchRoomsQueryRooms]
 """
-    variables: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
     if search is not UNSET:
         variables['search'] = search
     if values is not UNSET:
@@ -1786,20 +1928,21 @@ Returns:
         variables['offset'] = offset
     return execute(SearchRoomsQuery, variables, rath=rath).options
 
-async def alist_rooms(filter: Union[Optional[RoomFilter], UnsetType]=UNSET, order: Union[Optional[List[RoomOrder]], UnsetType]=UNSET, pagination: Union[Optional[OffsetPaginationInput], UnsetType]=UNSET, rath: Optional[AlpakaRath]=None) -> Tuple[Room, ...]:
+async def alist_rooms(filter: RoomFilter | None | UnsetType=UNSET, order: list[RoomOrder] | None | UnsetType=UNSET, pagination: OffsetPaginationInput | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> tuple[Room, ...]:
     """ListRooms 
 
+List the rooms in this organization
 
 Args:
-    filter (Optional[RoomFilter], optional): No description. 
-    order (Optional[List[RoomOrder]], optional): No description. 
-    pagination (Optional[OffsetPaginationInput], optional): No description. 
+    filter (RoomFilter | None, optional): No description. 
+    order (list[RoomOrder] | None, optional): No description. 
+    pagination (OffsetPaginationInput | None, optional): No description. 
     rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
-    List[Room]
+    list[Room]
 """
-    variables: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
     if filter is not UNSET:
         variables['filter'] = filter
     if order is not UNSET:
@@ -1808,20 +1951,21 @@ Returns:
         variables['pagination'] = pagination
     return (await aexecute(ListRoomsQuery, variables, rath=rath)).rooms
 
-def list_rooms(filter: Union[Optional[RoomFilter], UnsetType]=UNSET, order: Union[Optional[List[RoomOrder]], UnsetType]=UNSET, pagination: Union[Optional[OffsetPaginationInput], UnsetType]=UNSET, rath: Optional[AlpakaRath]=None) -> Tuple[Room, ...]:
+def list_rooms(filter: RoomFilter | None | UnsetType=UNSET, order: list[RoomOrder] | None | UnsetType=UNSET, pagination: OffsetPaginationInput | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> tuple[Room, ...]:
     """ListRooms 
 
+List the rooms in this organization
 
 Args:
-    filter (Optional[RoomFilter], optional): No description. 
-    order (Optional[List[RoomOrder]], optional): No description. 
-    pagination (Optional[OffsetPaginationInput], optional): No description. 
+    filter (RoomFilter | None, optional): No description. 
+    order (list[RoomOrder] | None, optional): No description. 
+    pagination (OffsetPaginationInput | None, optional): No description. 
     rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
-    List[Room]
+    list[Room]
 """
-    variables: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
     if filter is not UNSET:
         variables['filter'] = filter
     if order is not UNSET:
@@ -1830,9 +1974,10 @@ Returns:
         variables['pagination'] = pagination
     return execute(ListRoomsQuery, variables, rath=rath).rooms
 
-async def awatch_room(room: ID, agent_id: ID, rath: Optional[AlpakaRath]=None) -> AsyncIterator[WatchRoomSubscriptionRoom]:
+async def awatch_room(room: IDCoercible, agent_id: IDCoercible, rath: AlpakaRath | None=None) -> AsyncIterator[WatchRoomSubscriptionRoom]:
     """WatchRoom 
 
+Join a room and receive its messages as they are posted
 
 Args:
     room (ID): No description
@@ -1842,15 +1987,16 @@ Args:
 Returns:
     WatchRoomSubscriptionRoom
 """
-    variables: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
     variables['room'] = room
     variables['agentId'] = agent_id
     async for event in asubscribe(WatchRoomSubscription, variables, rath=rath):
         yield event.room
 
-def watch_room(room: ID, agent_id: ID, rath: Optional[AlpakaRath]=None) -> Iterator[WatchRoomSubscriptionRoom]:
+def watch_room(room: IDCoercible, agent_id: IDCoercible, rath: AlpakaRath | None=None) -> Iterator[WatchRoomSubscriptionRoom]:
     """WatchRoom 
 
+Join a room and receive its messages as they are posted
 
 Args:
     room (ID): No description
@@ -1860,7 +2006,7 @@ Args:
 Returns:
     WatchRoomSubscriptionRoom
 """
-    variables: Dict[str, Any] = {}
+    variables: dict[str, Any] = {}
     variables['room'] = room
     variables['agentId'] = agent_id
     for event in subscribe(WatchRoomSubscription, variables, rath=rath):

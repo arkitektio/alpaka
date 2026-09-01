@@ -7,7 +7,8 @@ from alpaka.api.schema import (
     OffsetPaginationInput,
     Ordering,
     RoomFilter,
-    RoomOrder,
+    RoomOrderCreatedAt,
+    RoomOrderTitle,
 )
 from .conftest import DeployedAlpaka
 
@@ -84,7 +85,7 @@ def test_order_rooms_by_creation_ascending(deployed_app: DeployedAlpaka) -> None
 
     rooms = list_rooms(
         filter=RoomFilter(ids=ids),
-        order=[RoomOrder(createdAt=Ordering.ASC)],
+        order=[RoomOrderCreatedAt(createdAt=Ordering.ASC)],
     )
     assert [room.id for room in rooms] == list(ids)
 
@@ -99,7 +100,7 @@ def test_order_rooms_by_creation_descending(deployed_app: DeployedAlpaka) -> Non
 
     rooms = list_rooms(
         filter=RoomFilter(ids=ids),
-        order=[RoomOrder(createdAt=Ordering.DESC)],
+        order=[RoomOrderCreatedAt(createdAt=Ordering.DESC)],
     )
     assert [room.id for room in rooms] == [third.id, second.id, first.id]
 
@@ -114,7 +115,7 @@ def test_order_rooms_by_title(deployed_app: DeployedAlpaka) -> None:
 
     rooms = list_rooms(
         filter=RoomFilter(ids=ids),
-        order=[RoomOrder(title=Ordering.ASC)],
+        order=[RoomOrderTitle(title=Ordering.ASC)],
     )
     assert [room.id for room in rooms] == [alpha.id, beta.id, gamma.id]
 

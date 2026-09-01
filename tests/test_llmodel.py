@@ -3,7 +3,8 @@ from alpaka.api.schema import (
     list_ll_models,
     search_llm_models,
     LLMModelFilter,
-    LLMModelOrder,
+    LLMModelOrderLabel,
+    LLMModelOrderModelId,
     OffsetPaginationInput,
     Ordering,
 )
@@ -14,7 +15,7 @@ from .conftest import DeployedAlpaka
 def test_list_ll_models_accepts_ordering(deployed_app: DeployedAlpaka) -> None:
     """Listing models accepts an ordering argument and returns a list."""
     models = list_ll_models(
-        order=[LLMModelOrder(label=Ordering.ASC)],
+        order=[LLMModelOrderLabel(label=Ordering.ASC)],
         pagination=OffsetPaginationInput(limit=100),
     )
     assert isinstance(models, tuple)
@@ -27,7 +28,7 @@ def test_list_ll_models_accepts_filter_and_ordering(
     """Models can be filtered and ordered in the same query."""
     models = list_ll_models(
         filter=LLMModelFilter(search="anything"),
-        order=[LLMModelOrder(modelId=Ordering.DESC)],
+        order=[LLMModelOrderModelId(modelId=Ordering.DESC)],
     )
     assert isinstance(models, tuple)
 

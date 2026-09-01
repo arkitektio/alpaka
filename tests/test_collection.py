@@ -3,7 +3,8 @@ from alpaka.api.schema import (
     list_chroma_collections,
     search_chroma_collection,
     ChromaCollectionFilter,
-    ChromaCollectionOrder,
+    ChromaCollectionOrderCreatedAt,
+    ChromaCollectionOrderName,
     OffsetPaginationInput,
     Ordering,
 )
@@ -16,7 +17,7 @@ def test_list_chroma_collections_accepts_ordering(
 ) -> None:
     """Listing collections accepts an ordering argument and returns a list."""
     collections = list_chroma_collections(
-        order=[ChromaCollectionOrder(name=Ordering.ASC)],
+        order=[ChromaCollectionOrderName(name=Ordering.ASC)],
         pagination=OffsetPaginationInput(limit=100),
     )
     assert isinstance(collections, tuple)
@@ -29,7 +30,7 @@ def test_list_chroma_collections_accepts_filter_and_ordering(
     """Collections can be filtered and ordered in the same query."""
     collections = list_chroma_collections(
         filter=ChromaCollectionFilter(search="anything"),
-        order=[ChromaCollectionOrder(createdAt=Ordering.DESC)],
+        order=[ChromaCollectionOrderCreatedAt(createdAt=Ordering.DESC)],
     )
     assert isinstance(collections, tuple)
 

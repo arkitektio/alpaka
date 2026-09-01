@@ -13,7 +13,8 @@ projects:
           enabled: true
         options:
           enabled: true
-          allow_population_by_field_name: true
+          populate_by_name: true
+          alias_mode: split
           use_enum_values: true
           extra: forbid
           types:

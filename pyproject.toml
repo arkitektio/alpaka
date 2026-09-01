@@ -15,10 +15,27 @@ dependencies = [
 [project.optional-dependencies]
 # Installed inside the semantic-release Docker action so build_command has uv.
 build = ["uv>=0.7.12"]
+# The tunnel (alpaka.openai()/aopenai()/get_endpoint()): native openai SDK
+# pointed at the server's OpenAI-compatible endpoint, resolved via fakts.
+# The arkitekt integration (alpaka.arkitekt / alpaka.rekuest) has no extra of
+# its own: arkitekt-next depends on alpaka and brings fakts/rekuest itself —
+# the guarded imports in __init__ light up when it is installed alongside.
+openai = ["openai>=1.30", "httpx>=0.27", "fakts-next>=1"]
 
+
+[tool.uv.sources]
+# Dev-time only (published wheels keep the plain version specs): the tunnel
+# tests need fakts_next.testing.TestingFakts, which is not on PyPI until the
+# next fakts-next release. TODO: drop this and floor fakts-next once released.
+fakts-next = { path = "../fakts-next", editable = true }
 
 [tool.uv]
 dev-dependencies = [
+    # The tunnel's optional runtime deps, present in dev so its unit tests
+    # (tests/test_tunnel.py) and the SDK integration test actually run.
+    "openai>=1.30",
+    "httpx>=0.27",
+    "fakts-next>=1",
     "dokker>=2.5",
     "pytest>=8.3.5",
     "pytest-asyncio>=0.26.0",
