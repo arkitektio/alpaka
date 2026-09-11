@@ -6,10 +6,13 @@ on:
     branches: [main, next]
 jobs:
   test_integration:
-    # Test prerelease branches against the prerelease backend (:next) and the
-    # stable line against :latest. base_ref is set on PRs, ref_name on pushes.
+    # Pinned to :next. jhnnsrs/alpaka does publish a :latest, but it predates the
+    # `authentikate.audience` setting configs/alpaka.yaml relies on and refuses to
+    # boot with it (`extra_forbidden`), so the previous 'main -> latest' expression
+    # failed every integration run on the stable line. Restore the split once a
+    # stable image that accepts the current config is published.
     env:
-      ALPAKA_SERVICE_TAG: ${{ (github.base_ref || github.ref_name) == 'main' && 'latest' || 'next' }}
+      ALPAKA_SERVICE_TAG: next
     strategy:
       fail-fast: false
       matrix:
