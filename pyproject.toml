@@ -20,12 +20,12 @@ build = ["uv>=0.7.12"]
 # The arkitekt integration (alpaka.arkitekt / alpaka.rekuest) has no extra of
 # its own: arkitekt depends on alpaka and brings fakts/rekuest itself —
 # the guarded imports in __init__ light up when it is installed alongside.
-openai = ["openai>=1.30", "httpx>=0.27", "fakts-next>=1"]
+openai = ["openai>=1.30", "httpx>=0.27", "fakts>=2"]
 
 
 [tool.uv.sources]
 # Dev-time only (published wheels keep the plain version specs): the tunnel
-# tests need fakts_next.testing.TestingFakts, which is not on PyPI until the
+# tests need fakts.testing.TestingFakts, which is not on PyPI until the
 # next fakts-next release. TODO: drop this and floor fakts-next once released.
 fakts-next = { path = "../fakts-next", editable = true }
 
@@ -35,7 +35,7 @@ dev-dependencies = [
     # (tests/test_tunnel.py) and the SDK integration test actually run.
     "openai>=1.30",
     "httpx>=0.27",
-    "fakts-next>=1",
+    "fakts>=2",
     "dokker>=2.5",
     "pytest>=8.3.5",
     "pytest-asyncio>=0.26.0",

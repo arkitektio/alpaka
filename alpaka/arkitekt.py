@@ -2,14 +2,14 @@ import json
 import os
 from alpaka.alpaka import Alpaka
 from alpaka.rath import AlpakaRath, AlpakaLinkComposition
-from fakts_next.contrib.rath.auth import FaktsAuthLink
+from fakts.contrib.rath.auth import FaktsAuthLink
 from rath.links.compose import compose
 from rath.links.split import SplitLink
-from fakts_next.contrib.rath.aiohttp import FaktsAIOHttpLink
-from fakts_next.contrib.rath.graphql_ws import FaktsGraphQLWSLink
+from fakts.contrib.rath.aiohttp import FaktsAIOHttpLink
+from fakts.contrib.rath.graphql_ws import FaktsGraphQLWSLink
 from graphql import OperationType
-from fakts_next import Fakts
-from rekuest_next.links.context import ContextLink
+from fakts import Fakts
+from rekuest.links.context import ContextLink
 
 
 from arkitekt.service_registry import (
@@ -17,7 +17,7 @@ from arkitekt.service_registry import (
     Params,
     get_default_service_registry,
 )
-from fakts_next.models import Requirement
+from fakts.models import Requirement
 
 
 def build_relative_path(*path: str) -> str:

@@ -29,7 +29,7 @@ try:
 except ImportError:  # openai >= 3 environments may ship only httpx2
     import httpx2 as httpx  # type: ignore[no-redef]
 
-from fakts_next import get_current_fakts_next
+from fakts import get_current_fakts
 
 if TYPE_CHECKING:
     from openai import AsyncOpenAI, OpenAI
@@ -60,7 +60,7 @@ class AlpakaEndpoint:
 def get_endpoint() -> AlpakaEndpoint:
     """Resolve the alpaka OpenAI-compatible endpoint from the current fakts
     context (requires an active arkitekt/fakts session, e.g. ``with easy():``)."""
-    fakts = get_current_fakts_next()
+    fakts = get_current_fakts()
     return AlpakaEndpoint(
         base_url=fakts.get_alias("alpaka").to_http_path("/llm/v1"),
         api_key=fakts.get_token(),
@@ -69,7 +69,7 @@ def get_endpoint() -> AlpakaEndpoint:
 
 async def aget_endpoint() -> AlpakaEndpoint:
     """Async twin of :func:`get_endpoint`, for callers inside an event loop."""
-    fakts = get_current_fakts_next()
+    fakts = get_current_fakts()
     alias = await fakts.aget_alias("alpaka")
     return AlpakaEndpoint(
         base_url=alias.to_http_path("/llm/v1"),
@@ -82,11 +82,11 @@ class _FaktsBearerAuth(httpx.Auth):
     built once keeps working after the token it was created with expires."""
 
     def sync_auth_flow(self, request: httpx.Request):
-        request.headers["Authorization"] = f"Bearer {get_current_fakts_next().get_token()}"
+        request.headers["Authorization"] = f"Bearer {get_current_fakts().get_token()}"
         yield request
 
     async def async_auth_flow(self, request: httpx.Request):
-        token = await get_current_fakts_next().aget_token()
+        token = await get_current_fakts().aget_token()
         request.headers["Authorization"] = f"Bearer {token}"
         yield request
 
@@ -99,7 +99,7 @@ def openai(**kwargs: Any) -> "OpenAI":
     """
     from openai import OpenAI
 
-    fakts = get_current_fakts_next()
+    fakts = get_current_fakts()
     kwargs.setdefault(
         "http_client", httpx.Client(auth=_FaktsBearerAuth(), timeout=httpx.Timeout(600.0))
     )
@@ -122,7 +122,7 @@ async def aopenai(**kwargs: Any) -> "AsyncOpenAI":
     """
     from openai import AsyncOpenAI
 
-    fakts = get_current_fakts_next()
+    fakts = get_current_fakts()
     alias = await fakts.aget_alias("alpaka")
     kwargs.setdefault(
         "http_client", httpx.AsyncClient(auth=_FaktsBearerAuth(), timeout=httpx.Timeout(600.0))

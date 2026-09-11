@@ -1,8 +1,8 @@
 """Unit tests for the SDK tunnel (``alpaka.tunnel``).
 
-No docker, no monkeypatching: a real ``fakts_next.testing.TestingFakts`` is
+No docker, no monkeypatching: a real ``fakts.testing.TestingFakts`` is
 entered as a context manager, which publishes it on the genuine
-``current_fakts_next`` contextvar — exactly how production code finds fakts —
+``current_fakts`` contextvar — exactly how production code finds fakts —
 and HTTP goes through ``httpx.MockTransport``. Because TestingFakts runs the
 real token machinery (locks, expiry, refresh), the rotation tests prove the
 true expiry→refetch path, not a fake counter.
@@ -18,11 +18,11 @@ import httpx
 import pytest
 
 pytest.importorskip("openai")
-fakts_next = pytest.importorskip("fakts_next")
-if not hasattr(fakts_next, "build_testing_fakts"):  # pragma: no cover
+fakts = pytest.importorskip("fakts")
+if not hasattr(fakts, "build_testing_fakts"):  # pragma: no cover
     pytest.skip("installed fakts-next predates TestingFakts", allow_module_level=True)
 
-from fakts_next.testing import build_testing_fakts  # noqa: E402
+from fakts.testing import build_testing_fakts  # noqa: E402
 
 import alpaka.tunnel as tunnel  # noqa: E402
 
