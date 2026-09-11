@@ -12,7 +12,7 @@ from fakts_next import Fakts
 from rekuest_next.links.context import ContextLink
 
 
-from arkitekt_next.service_registry import (
+from arkitekt.service_registry import (
     BaseArkitektService,
     Params,
     get_default_service_registry,

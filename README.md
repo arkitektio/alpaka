@@ -17,7 +17,7 @@ and hands you the client you already know.
 
 ```python
 import alpaka
-from arkitekt_next import easy
+from arkitekt import easy
 
 with easy():
     client = alpaka.openai()  # a real openai.OpenAI, pointed at your alpaka server
