@@ -1,5 +1,5 @@
 {
-    "schema": "/tmp/claude-1000/-home-jhnnsrs-Code-testing/68d60a31-1dec-4072-bf1d-ba02c8778840/scratchpad/alpaka_next_schema.graphql",
+    "schema": "schema.graphql",
     "documents": "graphql/**/**.graphql",
     "extensions": {
         "turms": {

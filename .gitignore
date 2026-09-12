@@ -149,3 +149,5 @@ data
 *.token.temp
 *.fakts.yaml
 fakts.yaml
+# Local-source override for the integration stack (see tests/conftest.py)
+tests/integration/docker-compose.local.yml

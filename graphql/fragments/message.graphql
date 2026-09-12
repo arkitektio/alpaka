@@ -1,8 +1,10 @@
 fragment Message on Message {
     id 
     text
+    isStreaming
     agent {
         id
+        name
         room {
             id
         }
@@ -23,8 +25,10 @@ fragment Message on Message {
 fragment ListMessage on Message {
     id 
     text
+    isStreaming
     agent {
         id
+        name
     }
     attachedStructures {
         object

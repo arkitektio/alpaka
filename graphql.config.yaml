@@ -1,7 +1,12 @@
 projects:
   
   alpaka:
-    schema: http://jhnnsrs-lab/alpaka/schema
+    # The SDL exported from the server tree (alpaka-server's alpaka_server.schema),
+    # not a running deployment: codegen has to be reproducible, and pointing at a
+    # live server generated against whatever happened to be deployed. Refresh with
+    #   uv run --project <alpaka-server> python -c \
+    #     "import django; django.setup(); from alpaka_server.schema import schema; print(schema)"
+    schema: schema.graphql
     documents: graphql/**/**.graphql
     extensions:
       turms:

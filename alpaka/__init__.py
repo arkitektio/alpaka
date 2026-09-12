@@ -1,4 +1,5 @@
 from .alpaka import Alpaka
+from .streaming import RoomStream, stream_into_room
 
 try:
     from .arkitekt import AlpakaService
@@ -23,6 +24,8 @@ except ImportError:
 
 __all__ = [
     "Alpaka",
+    "RoomStream",
+    "stream_into_room",
     "AlpakaService",
     "structure_reg",
     "AlpakaEndpoint",

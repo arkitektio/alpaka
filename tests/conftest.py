@@ -36,6 +36,11 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list) -> None:
 
 project_path = os.path.join(os.path.dirname(__file__), "integration")
 docker_compose_file = os.path.join(project_path, "docker-compose.yml")
+#: Optional, gitignored: mounts a local alpaka-server checkout over the image's
+#: /workspace, so the suite can test server changes that are not published yet.
+#: See tests/integration/docker-compose.local.yml.
+local_override_file = os.path.join(project_path, "docker-compose.local.yml")
+compose_files = [docker_compose_file] + ([local_override_file] if os.path.exists(local_override_file) else [])
 
 
 def _reserve_free_ports(count: int) -> list[int]:
@@ -103,7 +108,7 @@ def deployed_app(integration_ports: dict[str, int]) -> Generator[DeployedAlpaka,
     # testing(): a per-run `dokker-test-<hash>` project that is torn down on
     # exit, so concurrent or crashed runs (and sibling repos, which all name
     # their stack `integration`) never share containers.
-    setup = testing(docker_compose_file)
+    setup = testing(compose_files)
     setup.add_health_check(
         url=lambda spec: f"http://localhost:{spec.find_service('alpaka').get_port_for_internal(80).published}/graphql",
         service="alpaka",
@@ -118,7 +123,14 @@ def deployed_app(integration_ports: dict[str, int]) -> Generator[DeployedAlpaka,
 
     with setup:
         setup.down()
-        setup.pull()
+        try:
+            setup.pull()
+        except Exception as error:
+            # Best effort: Docker Hub rate-limits anonymous pulls, and failing the
+            # whole suite over a refreshed tag when every image is already on the
+            # machine is worse than running with what we have. A genuinely missing
+            # image still fails loudly, at `up`.
+            print(f"Could not refresh the images, using the local ones: {error}")
         setup.inspect()
 
         http_url = f"http://localhost:{setup.spec.find_service('alpaka').get_port_for_internal(80).published}/graphql"

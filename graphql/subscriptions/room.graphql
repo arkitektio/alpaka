@@ -1,7 +1,16 @@
-subscription WatchRoom($room: ID!, $agentId: ID!) {
-  room(room: $room, agentId: $agentId) {
+subscription WatchRoom($room: ID!, $agentId: ID!, $filterOwn: Boolean) {
+  room(room: $room, agentId: $agentId, filterOwn: $filterOwn) {
+    kind
     message {
       ...ListMessage
+    }
+    join {
+      id
+      name
+    }
+    leave {
+      id
+      name
     }
   }
 }

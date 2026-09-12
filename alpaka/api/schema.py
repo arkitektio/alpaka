@@ -91,6 +91,15 @@ class Role(str, Enum):
     FUNCTION = 'FUNCTION'
     __str__ = str.__str__
 
+class RoomEventKind(str, Enum):
+    """What happened in a room"""
+    MESSAGE_CREATED = 'MESSAGE_CREATED'
+    MESSAGE_UPDATED = 'MESSAGE_UPDATED'
+    MESSAGE_FINISHED = 'MESSAGE_FINISHED'
+    JOIN = 'JOIN'
+    LEAVE = 'LEAVE'
+    __str__ = str.__str__
+
 class ThinkingBlockType(str, Enum):
     """The type of the thinking block"""
     THINKING = 'THINKING'
@@ -255,10 +264,10 @@ class PullInput(BaseModel):
 class QueryInput(BaseModel):
     """A similarity query against a collection"""
     collection: ID
-    query_texts: tuple[str, ...] = Field(validation_alias=AliasChoices('query_texts', 'queryTexts'), serialization_alias='queryTexts')
-    n_results: Annotated[int | None, GraphQLDefault('3')] = Field(validation_alias=AliasChoices('n_results', 'nResults'), serialization_alias='nResults', default=None)
-    'Default: 3'
-    where: Any | None = None
+    query_texts: tuple[str, ...] = Field(validation_alias=AliasChoices('query_texts', 'queryTexts'), serialization_alias='queryTexts', description='One or more query texts; the union of their results is returned, deduplicated by document')
+    n_results: Annotated[int | None, GraphQLDefault('3')] = Field(validation_alias=AliasChoices('n_results', 'nResults'), serialization_alias='nResults', default=None, description='Results per query text')
+    'Results per query text\nDefault: 3'
+    where: Any | None = Field(default=None, description='Chroma metadata filter applied to every query')
     model_config = ConfigDict(frozen=True, extra='forbid', populate_by_name=True, use_enum_values=True)
 
 class RoomFilter(BaseModel):
@@ -371,6 +380,7 @@ class ListMessageAgent(BaseModel):
     """A participant in a room"""
     typename: Literal['Agent'] = Field(alias='__typename', default='Agent', exclude=True)
     id: ID
+    name: str | None = Field(default=None)
     model_config = ConfigDict(frozen=True)
 
 class ListMessageAttachedStructures(BaseModel):
@@ -386,6 +396,8 @@ class ListMessage(BaseModel):
     id: ID
     text: str
     'A clear text representation of the rich comment'
+    is_streaming: bool = Field(alias='isStreaming')
+    'Whether this message is still being written'
     agent: ListMessageAgent
     'The user that created this comment'
     attached_structures: tuple[ListMessageAttachedStructures, ...] = Field(alias='attachedStructures')
@@ -394,7 +406,7 @@ class ListMessage(BaseModel):
 
     class Meta:
         """Meta class for ListMessage"""
-        document = 'fragment ListMessage on Message {\n  id\n  text\n  agent {\n    id\n    __typename\n  }\n  attachedStructures {\n    object\n    identifier\n    __typename\n  }\n  __typename\n}'
+        document = 'fragment ListMessage on Message {\n  id\n  text\n  isStreaming\n  agent {\n    id\n    name\n    __typename\n  }\n  attachedStructures {\n    object\n    identifier\n    __typename\n  }\n  __typename\n}'
         name = 'ListMessage'
         type = 'Message'
 
@@ -522,6 +534,7 @@ class MessageAgent(BaseModel):
     """A participant in a room"""
     typename: Literal['Agent'] = Field(alias='__typename', default='Agent', exclude=True)
     id: ID
+    name: str | None = Field(default=None)
     room: MessageAgentRoom
     model_config = ConfigDict(frozen=True)
 
@@ -546,6 +559,8 @@ class Message(BaseModel):
     id: ID
     text: str
     'A clear text representation of the rich comment'
+    is_streaming: bool = Field(alias='isStreaming')
+    'Whether this message is still being written'
     agent: MessageAgent
     'The user that created this comment'
     room: MessageRoom
@@ -556,7 +571,7 @@ class Message(BaseModel):
 
     class Meta:
         """Meta class for Message"""
-        document = 'fragment ListMessage on Message {\n  id\n  text\n  agent {\n    id\n    __typename\n  }\n  attachedStructures {\n    object\n    identifier\n    __typename\n  }\n  __typename\n}\n\nfragment Message on Message {\n  id\n  text\n  agent {\n    id\n    room {\n      id\n      __typename\n    }\n    __typename\n  }\n  room {\n    id\n    title\n    __typename\n  }\n  before {\n    ...ListMessage\n    __typename\n  }\n  attachedStructures {\n    object\n    identifier\n    __typename\n  }\n  __typename\n}'
+        document = 'fragment ListMessage on Message {\n  id\n  text\n  isStreaming\n  agent {\n    id\n    name\n    __typename\n  }\n  attachedStructures {\n    object\n    identifier\n    __typename\n  }\n  __typename\n}\n\nfragment Message on Message {\n  id\n  text\n  isStreaming\n  agent {\n    id\n    name\n    room {\n      id\n      __typename\n    }\n    __typename\n  }\n  room {\n    id\n    title\n    __typename\n  }\n  before {\n    ...ListMessage\n    __typename\n  }\n  attachedStructures {\n    object\n    identifier\n    __typename\n  }\n  __typename\n}'
         name = 'Message'
         type = 'Message'
 
@@ -634,7 +649,7 @@ class GenerateImageMutation(BaseModel):
 class SendMutation(BaseModel):
     """No documentation found for this operation."""
     send: Message
-    'Post a message into a room'
+    'Post a complete message into a room'
 
     class Arguments(BaseModel):
         """Arguments for Send """
@@ -645,7 +660,7 @@ class SendMutation(BaseModel):
 
     class Meta:
         """Meta class for Send """
-        document = 'fragment ListMessage on Message {\n  id\n  text\n  agent {\n    id\n    __typename\n  }\n  attachedStructures {\n    object\n    identifier\n    __typename\n  }\n  __typename\n}\n\nfragment Message on Message {\n  id\n  text\n  agent {\n    id\n    room {\n      id\n      __typename\n    }\n    __typename\n  }\n  room {\n    id\n    title\n    __typename\n  }\n  before {\n    ...ListMessage\n    __typename\n  }\n  attachedStructures {\n    object\n    identifier\n    __typename\n  }\n  __typename\n}\n\nmutation Send($text: String!, $room: ID!, $agentId: String!, $attachStructures: [StructureInput!]) {\n  send(\n    input: {text: $text, room: $room, agentId: $agentId, attachStructures: $attachStructures}\n  ) {\n    ...Message\n    __typename\n  }\n}'
+        document = 'fragment ListMessage on Message {\n  id\n  text\n  isStreaming\n  agent {\n    id\n    name\n    __typename\n  }\n  attachedStructures {\n    object\n    identifier\n    __typename\n  }\n  __typename\n}\n\nfragment Message on Message {\n  id\n  text\n  isStreaming\n  agent {\n    id\n    name\n    room {\n      id\n      __typename\n    }\n    __typename\n  }\n  room {\n    id\n    title\n    __typename\n  }\n  before {\n    ...ListMessage\n    __typename\n  }\n  attachedStructures {\n    object\n    identifier\n    __typename\n  }\n  __typename\n}\n\nmutation Send($text: String!, $room: ID!, $agentId: String!, $attachStructures: [StructureInput!]) {\n  send(\n    input: {text: $text, room: $room, agentId: $agentId, attachStructures: $attachStructures}\n  ) {\n    ...Message\n    __typename\n  }\n}'
 
 class CreateProviderMutation(BaseModel):
     """No documentation found for this operation."""
@@ -693,6 +708,51 @@ class CreateRoomMutation(BaseModel):
     class Meta:
         """Meta class for CreateRoom """
         document = 'fragment Room on Room {\n  id\n  title\n  description\n  __typename\n}\n\nmutation CreateRoom($title: String, $description: String) {\n  createRoom(input: {title: $title, description: $description}) {\n    ...Room\n    __typename\n  }\n}'
+
+class StartMessageMutation(BaseModel):
+    """No documentation found for this operation."""
+    start_message: ListMessage = Field(alias='startMessage')
+    'Open a message to stream text into. Only the starting agent (same user and client) can append to or finish it.'
+
+    class Arguments(BaseModel):
+        """Arguments for StartMessage """
+        room: ID
+        agent_id: str = Field(validation_alias=AliasChoices('agent_id', 'agentId'), serialization_alias='agentId')
+        parent: ID | None = Field(default=None)
+        text: str | None = Field(default=None)
+
+    class Meta:
+        """Meta class for StartMessage """
+        document = 'fragment ListMessage on Message {\n  id\n  text\n  isStreaming\n  agent {\n    id\n    name\n    __typename\n  }\n  attachedStructures {\n    object\n    identifier\n    __typename\n  }\n  __typename\n}\n\nmutation StartMessage($room: ID!, $agentId: String!, $parent: ID, $text: String) {\n  startMessage(\n    input: {room: $room, agentId: $agentId, parent: $parent, text: $text}\n  ) {\n    ...ListMessage\n    __typename\n  }\n}'
+
+class AppendMessageMutation(BaseModel):
+    """No documentation found for this operation."""
+    append_message: ListMessage = Field(alias='appendMessage')
+    'Append a delta to a streaming message. Batch deltas (every ~100-250 ms or ~30 characters) and await each call before sending the next, so they arrive in order.'
+
+    class Arguments(BaseModel):
+        """Arguments for AppendMessage """
+        message: ID
+        delta: str
+
+    class Meta:
+        """Meta class for AppendMessage """
+        document = 'fragment ListMessage on Message {\n  id\n  text\n  isStreaming\n  agent {\n    id\n    name\n    __typename\n  }\n  attachedStructures {\n    object\n    identifier\n    __typename\n  }\n  __typename\n}\n\nmutation AppendMessage($message: ID!, $delta: String!) {\n  appendMessage(input: {message: $message, delta: $delta}) {\n    ...ListMessage\n    __typename\n  }\n}'
+
+class FinishMessageMutation(BaseModel):
+    """No documentation found for this operation."""
+    finish_message: ListMessage = Field(alias='finishMessage')
+    'Close a streaming message. Pass the full final text so any delta lost on the way is repaired; call it in a finally block so a crashed stream never stays open.'
+
+    class Arguments(BaseModel):
+        """Arguments for FinishMessage """
+        message: ID
+        text: str | None = Field(default=None)
+        attach_structures: list[StructureInput] | None = Field(validation_alias=AliasChoices('attach_structures', 'attachStructures'), serialization_alias='attachStructures', default=None)
+
+    class Meta:
+        """Meta class for FinishMessage """
+        document = 'fragment ListMessage on Message {\n  id\n  text\n  isStreaming\n  agent {\n    id\n    name\n    __typename\n  }\n  attachedStructures {\n    object\n    identifier\n    __typename\n  }\n  __typename\n}\n\nmutation FinishMessage($message: ID!, $text: String, $attachStructures: [StructureInput!]) {\n  finishMessage(\n    input: {message: $message, text: $text, attachStructures: $attachStructures}\n  ) {\n    ...ListMessage\n    __typename\n  }\n}'
 
 class GetChromaCollectionQuery(BaseModel):
     """No documentation found for this operation."""
@@ -821,7 +881,7 @@ class GetMessageQuery(BaseModel):
 
     class Meta:
         """Meta class for GetMessage """
-        document = 'fragment ListMessage on Message {\n  id\n  text\n  agent {\n    id\n    __typename\n  }\n  attachedStructures {\n    object\n    identifier\n    __typename\n  }\n  __typename\n}\n\nfragment Message on Message {\n  id\n  text\n  agent {\n    id\n    room {\n      id\n      __typename\n    }\n    __typename\n  }\n  room {\n    id\n    title\n    __typename\n  }\n  before {\n    ...ListMessage\n    __typename\n  }\n  attachedStructures {\n    object\n    identifier\n    __typename\n  }\n  __typename\n}\n\nquery GetMessage($id: ID!) {\n  message(id: $id) {\n    ...Message\n    __typename\n  }\n}'
+        document = 'fragment ListMessage on Message {\n  id\n  text\n  isStreaming\n  agent {\n    id\n    name\n    __typename\n  }\n  attachedStructures {\n    object\n    identifier\n    __typename\n  }\n  __typename\n}\n\nfragment Message on Message {\n  id\n  text\n  isStreaming\n  agent {\n    id\n    name\n    room {\n      id\n      __typename\n    }\n    __typename\n  }\n  room {\n    id\n    title\n    __typename\n  }\n  before {\n    ...ListMessage\n    __typename\n  }\n  attachedStructures {\n    object\n    identifier\n    __typename\n  }\n  __typename\n}\n\nquery GetMessage($id: ID!) {\n  message(id: $id) {\n    ...Message\n    __typename\n  }\n}'
 
 class SearchMessagesQueryOptions(BaseModel):
     """Message represent the message of an agent on a room"""
@@ -859,7 +919,7 @@ class ListMessagesQuery(BaseModel):
 
     class Meta:
         """Meta class for ListMessages """
-        document = 'fragment ListMessage on Message {\n  id\n  text\n  agent {\n    id\n    __typename\n  }\n  attachedStructures {\n    object\n    identifier\n    __typename\n  }\n  __typename\n}\n\nquery ListMessages($filter: MessageFilter, $order: [MessageOrder!], $pagination: OffsetPaginationInput) {\n  messages(filters: $filter, ordering: $order, pagination: $pagination) {\n    ...ListMessage\n    __typename\n  }\n}'
+        document = 'fragment ListMessage on Message {\n  id\n  text\n  isStreaming\n  agent {\n    id\n    name\n    __typename\n  }\n  attachedStructures {\n    object\n    identifier\n    __typename\n  }\n  __typename\n}\n\nquery ListMessages($filter: MessageFilter, $order: [MessageOrder!], $pagination: OffsetPaginationInput) {\n  messages(filters: $filter, ordering: $order, pagination: $pagination) {\n    ...ListMessage\n    __typename\n  }\n}'
 
 class GetRoomQuery(BaseModel):
     """No documentation found for this operation."""
@@ -914,25 +974,46 @@ class ListRoomsQuery(BaseModel):
         """Meta class for ListRooms """
         document = 'fragment Room on Room {\n  id\n  title\n  description\n  __typename\n}\n\nquery ListRooms($filter: RoomFilter, $order: [RoomOrder!], $pagination: OffsetPaginationInput) {\n  rooms(filters: $filter, ordering: $order, pagination: $pagination) {\n    ...Room\n    __typename\n  }\n}'
 
+class WatchRoomSubscriptionRoomJoin(BaseModel):
+    """A participant in a room"""
+    typename: Literal['Agent'] = Field(alias='__typename', default='Agent', exclude=True)
+    id: ID
+    name: str | None = Field(default=None)
+    model_config = ConfigDict(frozen=True)
+
+class WatchRoomSubscriptionRoomLeave(BaseModel):
+    """A participant in a room"""
+    typename: Literal['Agent'] = Field(alias='__typename', default='Agent', exclude=True)
+    id: ID
+    name: str | None = Field(default=None)
+    model_config = ConfigDict(frozen=True)
+
 class WatchRoomSubscriptionRoom(BaseModel):
     """Something that happened in a room"""
     typename: Literal['RoomEvent'] = Field(alias='__typename', default='RoomEvent', exclude=True)
+    kind: RoomEventKind
     message: ListMessage | None = Field(default=None)
+    'The message, for MESSAGE_* events'
+    join: WatchRoomSubscriptionRoomJoin | None = Field(default=None)
+    'The agent that joined, for JOIN events'
+    leave: WatchRoomSubscriptionRoomLeave | None = Field(default=None)
+    'The agent that left, for LEAVE events'
     model_config = ConfigDict(frozen=True)
 
 class WatchRoomSubscription(BaseModel):
     """No documentation found for this operation."""
     room: WatchRoomSubscriptionRoom
-    'Join a room and receive its messages as they are posted'
+    'Join a room and receive its events: messages created, streamed into and finished, and agents joining or leaving'
 
     class Arguments(BaseModel):
         """Arguments for WatchRoom """
         room: ID
         agent_id: ID = Field(validation_alias=AliasChoices('agent_id', 'agentId'), serialization_alias='agentId')
+        filter_own: bool | None = Field(validation_alias=AliasChoices('filter_own', 'filterOwn'), serialization_alias='filterOwn', default=None)
 
     class Meta:
         """Meta class for WatchRoom """
-        document = 'fragment ListMessage on Message {\n  id\n  text\n  agent {\n    id\n    __typename\n  }\n  attachedStructures {\n    object\n    identifier\n    __typename\n  }\n  __typename\n}\n\nsubscription WatchRoom($room: ID!, $agentId: ID!) {\n  room(room: $room, agentId: $agentId) {\n    message {\n      ...ListMessage\n      __typename\n    }\n    __typename\n  }\n}'
+        document = 'fragment ListMessage on Message {\n  id\n  text\n  isStreaming\n  agent {\n    id\n    name\n    __typename\n  }\n  attachedStructures {\n    object\n    identifier\n    __typename\n  }\n  __typename\n}\n\nsubscription WatchRoom($room: ID!, $agentId: ID!, $filterOwn: Boolean) {\n  room(room: $room, agentId: $agentId, filterOwn: $filterOwn) {\n    kind\n    message {\n      ...ListMessage\n      __typename\n    }\n    join {\n      id\n      name\n      __typename\n    }\n    leave {\n      id\n      name\n      __typename\n    }\n    __typename\n  }\n}'
 
 async def achat(messages: Iterable[ChatMessageInput], model: IDCoercible | None | UnsetType=UNSET, tools: Iterable[ToolInput] | None | UnsetType=UNSET, tool_choice: Any | None | UnsetType=UNSET, temperature: float | None | UnsetType=UNSET, max_tokens: int | None | UnsetType=UNSET, top_p: float | None | UnsetType=UNSET, frequency_penalty: float | None | UnsetType=UNSET, presence_penalty: float | None | UnsetType=UNSET, stop: Iterable[str] | None | UnsetType=UNSET, n: int | None | UnsetType=UNSET, response_format: Any | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> ChatResponse:
     """Chat 
@@ -1213,7 +1294,7 @@ Returns:
 async def asend(text: str, room: IDCoercible, agent_id: str, attach_structures: list[StructureInput] | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> Message:
     """Send 
 
-Post a message into a room
+Post a complete message into a room
 
 Args:
     text (str): No description
@@ -1236,7 +1317,7 @@ Returns:
 def send(text: str, room: IDCoercible, agent_id: str, attach_structures: list[StructureInput] | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> Message:
     """Send 
 
-Post a message into a room
+Post a complete message into a room
 
 Args:
     text (str): No description
@@ -1404,6 +1485,134 @@ Returns:
         variables['description'] = description
     return execute(CreateRoomMutation, variables, rath=rath).create_room
 
+async def astart_message(room: IDCoercible, agent_id: str, parent: IDCoercible | None | UnsetType=UNSET, text: str | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> ListMessage:
+    """StartMessage 
+
+Open a message to stream text into. Only the starting agent (same user and client) can append to or finish it.
+
+Args:
+    room (ID): No description
+    agent_id (str): No description
+    parent (ID | None, optional): No description. 
+    text (str | None, optional): No description. 
+    rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
+
+Returns:
+    ListMessage
+"""
+    variables: dict[str, Any] = {}
+    variables['room'] = room
+    variables['agentId'] = agent_id
+    if parent is not UNSET:
+        variables['parent'] = parent
+    if text is not UNSET:
+        variables['text'] = text
+    return (await aexecute(StartMessageMutation, variables, rath=rath)).start_message
+
+def start_message(room: IDCoercible, agent_id: str, parent: IDCoercible | None | UnsetType=UNSET, text: str | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> ListMessage:
+    """StartMessage 
+
+Open a message to stream text into. Only the starting agent (same user and client) can append to or finish it.
+
+Args:
+    room (ID): No description
+    agent_id (str): No description
+    parent (ID | None, optional): No description. 
+    text (str | None, optional): No description. 
+    rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
+
+Returns:
+    ListMessage
+"""
+    variables: dict[str, Any] = {}
+    variables['room'] = room
+    variables['agentId'] = agent_id
+    if parent is not UNSET:
+        variables['parent'] = parent
+    if text is not UNSET:
+        variables['text'] = text
+    return execute(StartMessageMutation, variables, rath=rath).start_message
+
+async def aappend_message(message: IDCoercible, delta: str, rath: AlpakaRath | None=None) -> ListMessage:
+    """AppendMessage 
+
+Append a delta to a streaming message. Batch deltas (every ~100-250 ms or ~30 characters) and await each call before sending the next, so they arrive in order.
+
+Args:
+    message (ID): No description
+    delta (str): No description
+    rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
+
+Returns:
+    ListMessage
+"""
+    variables: dict[str, Any] = {}
+    variables['message'] = message
+    variables['delta'] = delta
+    return (await aexecute(AppendMessageMutation, variables, rath=rath)).append_message
+
+def append_message(message: IDCoercible, delta: str, rath: AlpakaRath | None=None) -> ListMessage:
+    """AppendMessage 
+
+Append a delta to a streaming message. Batch deltas (every ~100-250 ms or ~30 characters) and await each call before sending the next, so they arrive in order.
+
+Args:
+    message (ID): No description
+    delta (str): No description
+    rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
+
+Returns:
+    ListMessage
+"""
+    variables: dict[str, Any] = {}
+    variables['message'] = message
+    variables['delta'] = delta
+    return execute(AppendMessageMutation, variables, rath=rath).append_message
+
+async def afinish_message(message: IDCoercible, text: str | None | UnsetType=UNSET, attach_structures: list[StructureInput] | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> ListMessage:
+    """FinishMessage 
+
+Close a streaming message. Pass the full final text so any delta lost on the way is repaired; call it in a finally block so a crashed stream never stays open.
+
+Args:
+    message (ID): No description
+    text (str | None, optional): No description. 
+    attach_structures (list[StructureInput] | None, optional): No description. 
+    rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
+
+Returns:
+    ListMessage
+"""
+    variables: dict[str, Any] = {}
+    variables['message'] = message
+    if text is not UNSET:
+        variables['text'] = text
+    if attach_structures is not UNSET:
+        variables['attachStructures'] = attach_structures
+    return (await aexecute(FinishMessageMutation, variables, rath=rath)).finish_message
+
+def finish_message(message: IDCoercible, text: str | None | UnsetType=UNSET, attach_structures: list[StructureInput] | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> ListMessage:
+    """FinishMessage 
+
+Close a streaming message. Pass the full final text so any delta lost on the way is repaired; call it in a finally block so a crashed stream never stays open.
+
+Args:
+    message (ID): No description
+    text (str | None, optional): No description. 
+    attach_structures (list[StructureInput] | None, optional): No description. 
+    rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
+
+Returns:
+    ListMessage
+"""
+    variables: dict[str, Any] = {}
+    variables['message'] = message
+    if text is not UNSET:
+        variables['text'] = text
+    if attach_structures is not UNSET:
+        variables['attachStructures'] = attach_structures
+    return execute(FinishMessageMutation, variables, rath=rath).finish_message
+
 async def aget_chroma_collection(id: IDCoercible, rath: AlpakaRath | None=None) -> ChromaCollection:
     """GetChromaCollection 
 
@@ -1541,9 +1750,9 @@ Search a collection for the documents most similar to some text
 
 Args:
     collection: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID. (required)
-    query_texts: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required) (list) (required)
-    n_results: The `Int` scalar type represents non-fractional signed whole numeric values. Int can represent values between -(2^31) and 2^31 - 1. (required)
-    where: The `JSON` scalar type represents JSON values as specified by [ECMA-404](https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf).
+    query_texts: One or more query texts; the union of their results is returned, deduplicated by document
+    n_results: Results per query text
+    where: Chroma metadata filter applied to every query
     rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
@@ -1566,9 +1775,9 @@ Search a collection for the documents most similar to some text
 
 Args:
     collection: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID. (required)
-    query_texts: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required) (list) (required)
-    n_results: The `Int` scalar type represents non-fractional signed whole numeric values. Int can represent values between -(2^31) and 2^31 - 1. (required)
-    where: The `JSON` scalar type represents JSON values as specified by [ECMA-404](https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf).
+    query_texts: One or more query texts; the union of their results is returned, deduplicated by document
+    n_results: Results per query text
+    where: Chroma metadata filter applied to every query
     rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
@@ -1974,14 +2183,15 @@ Returns:
         variables['pagination'] = pagination
     return execute(ListRoomsQuery, variables, rath=rath).rooms
 
-async def awatch_room(room: IDCoercible, agent_id: IDCoercible, rath: AlpakaRath | None=None) -> AsyncIterator[WatchRoomSubscriptionRoom]:
+async def awatch_room(room: IDCoercible, agent_id: IDCoercible, filter_own: bool | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> AsyncIterator[WatchRoomSubscriptionRoom]:
     """WatchRoom 
 
-Join a room and receive its messages as they are posted
+Join a room and receive its events: messages created, streamed into and finished, and agents joining or leaving
 
 Args:
     room (ID): No description
     agent_id (ID): No description
+    filter_own (bool | None, optional): No description. 
     rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
@@ -1990,17 +2200,20 @@ Returns:
     variables: dict[str, Any] = {}
     variables['room'] = room
     variables['agentId'] = agent_id
+    if filter_own is not UNSET:
+        variables['filterOwn'] = filter_own
     async for event in asubscribe(WatchRoomSubscription, variables, rath=rath):
         yield event.room
 
-def watch_room(room: IDCoercible, agent_id: IDCoercible, rath: AlpakaRath | None=None) -> Iterator[WatchRoomSubscriptionRoom]:
+def watch_room(room: IDCoercible, agent_id: IDCoercible, filter_own: bool | None | UnsetType=UNSET, rath: AlpakaRath | None=None) -> Iterator[WatchRoomSubscriptionRoom]:
     """WatchRoom 
 
-Join a room and receive its messages as they are posted
+Join a room and receive its events: messages created, streamed into and finished, and agents joining or leaving
 
 Args:
     room (ID): No description
     agent_id (ID): No description
+    filter_own (bool | None, optional): No description. 
     rath (alpaka.rath.AlpakaRath, optional): The client we want to use (defaults to the currently active client)
 
 Returns:
@@ -2009,6 +2222,8 @@ Returns:
     variables: dict[str, Any] = {}
     variables['room'] = room
     variables['agentId'] = agent_id
+    if filter_own is not UNSET:
+        variables['filterOwn'] = filter_own
     for event in subscribe(WatchRoomSubscription, variables, rath=rath):
         yield event.room
 AddDocumentsToCollectionInput.model_rebuild()

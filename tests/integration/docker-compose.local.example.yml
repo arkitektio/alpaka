@@ -1,0 +1,19 @@
+# Example: run the integration suite against a local alpaka-server checkout
+# instead of the published jhnnsrs/alpaka image.
+#
+# Copy this file to docker-compose.local.yml (gitignored) and point the volume at
+# your checkout; tests/conftest.py passes it to dokker when it exists.
+#
+# The base compose pins `jhnnsrs/alpaka:${ALPAKA_SERVICE_TAG:-next}`, so every
+# server-side change is invisible here until someone rebuilds and pushes that
+# image -- a schema-drift failure that reads like a mass client regression but is
+# just image lag. This file mounts the working tree over /workspace. It is
+# gitignored and only used when it exists, so CI keeps testing the published
+# image.
+#
+# Compose merges volumes by target, so the base file's config.yaml mount still
+# wins for that path.
+services:
+  alpaka:
+    volumes:
+      - /path/to/your/alpaka-server:/workspace

@@ -1,0 +1,17 @@
+mutation StartMessage($room: ID!, $agentId: String!, $parent: ID, $text: String) {
+    startMessage(input: {room: $room, agentId: $agentId, parent: $parent, text: $text}) {
+        ...ListMessage
+    }
+}
+
+mutation AppendMessage($message: ID!, $delta: String!) {
+    appendMessage(input: {message: $message, delta: $delta}) {
+        ...ListMessage
+    }
+}
+
+mutation FinishMessage($message: ID!, $text: String, $attachStructures: [StructureInput!]) {
+    finishMessage(input: {message: $message, text: $text, attachStructures: $attachStructures}) {
+        ...ListMessage
+    }
+}
