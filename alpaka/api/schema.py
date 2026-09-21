@@ -3,6 +3,7 @@ from datetime import datetime
 from enum import Enum
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 from rath.scalars import ID, IDCoercible
+from rath.task import TaskLike
 from typing import Annotated, Any, AsyncIterator, Iterable, Iterator, Literal
 
 class GraphQLDefault:
@@ -1018,7 +1019,7 @@ class AlpakaApi:
 
 Each method hands its operation to ``execute``, ``aexecute``, ``subscribe``, ``asubscribe`` of ``self``, which the class this one is mixed into (or a base of it) provides."""
 
-    async def achat(self, messages: Iterable[ChatMessageInput], model: IDCoercible | None | UnsetType=UNSET, tools: Iterable[ToolInput] | None | UnsetType=UNSET, tool_choice: Any | None | UnsetType=UNSET, temperature: float | None | UnsetType=UNSET, max_tokens: int | None | UnsetType=UNSET, top_p: float | None | UnsetType=UNSET, frequency_penalty: float | None | UnsetType=UNSET, presence_penalty: float | None | UnsetType=UNSET, stop: Iterable[str] | None | UnsetType=UNSET, n: int | None | UnsetType=UNSET, response_format: Any | None | UnsetType=UNSET) -> ChatResponse:
+    async def achat(self, messages: Iterable[ChatMessageInput], model: IDCoercible | None | UnsetType=UNSET, tools: Iterable[ToolInput] | None | UnsetType=UNSET, tool_choice: Any | None | UnsetType=UNSET, temperature: float | None | UnsetType=UNSET, max_tokens: int | None | UnsetType=UNSET, top_p: float | None | UnsetType=UNSET, frequency_penalty: float | None | UnsetType=UNSET, presence_penalty: float | None | UnsetType=UNSET, stop: Iterable[str] | None | UnsetType=UNSET, n: int | None | UnsetType=UNSET, response_format: Any | None | UnsetType=UNSET, task: TaskLike | None=None) -> ChatResponse:
         """Chat 
 
 Send a chat completion request
@@ -1036,6 +1037,7 @@ Args:
     stop: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required) (list)
     n: The `Int` scalar type represents non-fractional signed whole numeric values. Int can represent values between -(2^31) and 2^31 - 1.
     response_format: The `JSON` scalar type represents JSON values as specified by [ECMA-404](https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf).
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     ChatResponse
@@ -1066,9 +1068,9 @@ Returns:
         if response_format is not UNSET:
             _input['responseFormat'] = response_format
         variables['input'] = _input
-        return (await self.aexecute(ChatMutation, variables)).chat
+        return (await self.aexecute(ChatMutation, variables, task=task)).chat
 
-    def chat(self, messages: Iterable[ChatMessageInput], model: IDCoercible | None | UnsetType=UNSET, tools: Iterable[ToolInput] | None | UnsetType=UNSET, tool_choice: Any | None | UnsetType=UNSET, temperature: float | None | UnsetType=UNSET, max_tokens: int | None | UnsetType=UNSET, top_p: float | None | UnsetType=UNSET, frequency_penalty: float | None | UnsetType=UNSET, presence_penalty: float | None | UnsetType=UNSET, stop: Iterable[str] | None | UnsetType=UNSET, n: int | None | UnsetType=UNSET, response_format: Any | None | UnsetType=UNSET) -> ChatResponse:
+    def chat(self, messages: Iterable[ChatMessageInput], model: IDCoercible | None | UnsetType=UNSET, tools: Iterable[ToolInput] | None | UnsetType=UNSET, tool_choice: Any | None | UnsetType=UNSET, temperature: float | None | UnsetType=UNSET, max_tokens: int | None | UnsetType=UNSET, top_p: float | None | UnsetType=UNSET, frequency_penalty: float | None | UnsetType=UNSET, presence_penalty: float | None | UnsetType=UNSET, stop: Iterable[str] | None | UnsetType=UNSET, n: int | None | UnsetType=UNSET, response_format: Any | None | UnsetType=UNSET, task: TaskLike | None=None) -> ChatResponse:
         """Chat 
 
 Send a chat completion request
@@ -1086,6 +1088,7 @@ Args:
     stop: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required) (list)
     n: The `Int` scalar type represents non-fractional signed whole numeric values. Int can represent values between -(2^31) and 2^31 - 1.
     response_format: The `JSON` scalar type represents JSON values as specified by [ECMA-404](https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf).
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     ChatResponse
@@ -1116,9 +1119,9 @@ Returns:
         if response_format is not UNSET:
             _input['responseFormat'] = response_format
         variables['input'] = _input
-        return self.execute(ChatMutation, variables).chat
+        return self.execute(ChatMutation, variables, task=task).chat
 
-    async def acreate_collection(self, name: str, embedder: IDCoercible, description: str | None | UnsetType=UNSET) -> ChromaCollection:
+    async def acreate_collection(self, name: str, embedder: IDCoercible, description: str | None | UnsetType=UNSET, task: TaskLike | None=None) -> ChromaCollection:
         """CreateCollection 
 
 Create a searchable collection of documents
@@ -1127,6 +1130,7 @@ Args:
     name: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required)
     embedder: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID. (required)
     description: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     ChromaCollection
@@ -1138,9 +1142,9 @@ Returns:
         if description is not UNSET:
             _input['description'] = description
         variables['input'] = _input
-        return (await self.aexecute(CreateCollectionMutation, variables)).create_collection
+        return (await self.aexecute(CreateCollectionMutation, variables, task=task)).create_collection
 
-    def create_collection(self, name: str, embedder: IDCoercible, description: str | None | UnsetType=UNSET) -> ChromaCollection:
+    def create_collection(self, name: str, embedder: IDCoercible, description: str | None | UnsetType=UNSET, task: TaskLike | None=None) -> ChromaCollection:
         """CreateCollection 
 
 Create a searchable collection of documents
@@ -1149,6 +1153,7 @@ Args:
     name: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required)
     embedder: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID. (required)
     description: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     ChromaCollection
@@ -1160,9 +1165,9 @@ Returns:
         if description is not UNSET:
             _input['description'] = description
         variables['input'] = _input
-        return self.execute(CreateCollectionMutation, variables).create_collection
+        return self.execute(CreateCollectionMutation, variables, task=task).create_collection
 
-    async def aensure_collection(self, name: str, embedder: IDCoercible, description: str | None | UnsetType=UNSET) -> ChromaCollection:
+    async def aensure_collection(self, name: str, embedder: IDCoercible, description: str | None | UnsetType=UNSET, task: TaskLike | None=None) -> ChromaCollection:
         """EnsureCollection 
 
 Create a collection, or update it if it already exists
@@ -1171,6 +1176,7 @@ Args:
     name: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required)
     embedder: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID. (required)
     description: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     ChromaCollection
@@ -1182,9 +1188,9 @@ Returns:
         if description is not UNSET:
             _input['description'] = description
         variables['input'] = _input
-        return (await self.aexecute(EnsureCollectionMutation, variables)).ensure_collection
+        return (await self.aexecute(EnsureCollectionMutation, variables, task=task)).ensure_collection
 
-    def ensure_collection(self, name: str, embedder: IDCoercible, description: str | None | UnsetType=UNSET) -> ChromaCollection:
+    def ensure_collection(self, name: str, embedder: IDCoercible, description: str | None | UnsetType=UNSET, task: TaskLike | None=None) -> ChromaCollection:
         """EnsureCollection 
 
 Create a collection, or update it if it already exists
@@ -1193,6 +1199,7 @@ Args:
     name: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required)
     embedder: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID. (required)
     description: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     ChromaCollection
@@ -1204,9 +1211,9 @@ Returns:
         if description is not UNSET:
             _input['description'] = description
         variables['input'] = _input
-        return self.execute(EnsureCollectionMutation, variables).ensure_collection
+        return self.execute(EnsureCollectionMutation, variables, task=task).ensure_collection
 
-    async def aadd_documents_to_collection(self, collection: IDCoercible, documents: Iterable[DocumentInput]) -> tuple[Document, ...]:
+    async def aadd_documents_to_collection(self, collection: IDCoercible, documents: Iterable[DocumentInput], task: TaskLike | None=None) -> tuple[Document, ...]:
         """AddDocumentsToCollection 
 
 Embed documents and add them to a collection
@@ -1214,6 +1221,7 @@ Embed documents and add them to a collection
 Args:
     collection: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID. (required)
     documents: A document to put into the vector database (required) (list) (required)
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     list[Document]
@@ -1223,9 +1231,9 @@ Returns:
         _input['collection'] = collection
         _input['documents'] = documents
         variables['input'] = _input
-        return (await self.aexecute(AddDocumentsToCollectionMutation, variables)).add_documents_to_collection
+        return (await self.aexecute(AddDocumentsToCollectionMutation, variables, task=task)).add_documents_to_collection
 
-    def add_documents_to_collection(self, collection: IDCoercible, documents: Iterable[DocumentInput]) -> tuple[Document, ...]:
+    def add_documents_to_collection(self, collection: IDCoercible, documents: Iterable[DocumentInput], task: TaskLike | None=None) -> tuple[Document, ...]:
         """AddDocumentsToCollection 
 
 Embed documents and add them to a collection
@@ -1233,6 +1241,7 @@ Embed documents and add them to a collection
 Args:
     collection: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID. (required)
     documents: A document to put into the vector database (required) (list) (required)
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     list[Document]
@@ -1242,9 +1251,9 @@ Returns:
         _input['collection'] = collection
         _input['documents'] = documents
         variables['input'] = _input
-        return self.execute(AddDocumentsToCollectionMutation, variables).add_documents_to_collection
+        return self.execute(AddDocumentsToCollectionMutation, variables, task=task).add_documents_to_collection
 
-    async def agenerate_image(self, description: str, model: IDCoercible | None | UnsetType=UNSET) -> GenerateImageMutationGenerateImage:
+    async def agenerate_image(self, description: str, model: IDCoercible | None | UnsetType=UNSET, task: TaskLike | None=None) -> GenerateImageMutationGenerateImage:
         """GenerateImage 
 
 Generate an image from a text description
@@ -1252,6 +1261,7 @@ Generate an image from a text description
 Args:
     model: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID.
     description: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required)
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     GenerateImageMutationGenerateImage
@@ -1262,9 +1272,9 @@ Returns:
             _input['model'] = model
         _input['description'] = description
         variables['input'] = _input
-        return (await self.aexecute(GenerateImageMutation, variables)).generate_image
+        return (await self.aexecute(GenerateImageMutation, variables, task=task)).generate_image
 
-    def generate_image(self, description: str, model: IDCoercible | None | UnsetType=UNSET) -> GenerateImageMutationGenerateImage:
+    def generate_image(self, description: str, model: IDCoercible | None | UnsetType=UNSET, task: TaskLike | None=None) -> GenerateImageMutationGenerateImage:
         """GenerateImage 
 
 Generate an image from a text description
@@ -1272,6 +1282,7 @@ Generate an image from a text description
 Args:
     model: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID.
     description: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required)
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     GenerateImageMutationGenerateImage
@@ -1282,9 +1293,9 @@ Returns:
             _input['model'] = model
         _input['description'] = description
         variables['input'] = _input
-        return self.execute(GenerateImageMutation, variables).generate_image
+        return self.execute(GenerateImageMutation, variables, task=task).generate_image
 
-    async def asend(self, text: str, room: IDCoercible, agent_id: str, attach_structures: list[StructureInput] | None | UnsetType=UNSET) -> Message:
+    async def asend(self, text: str, room: IDCoercible, agent_id: str, attach_structures: list[StructureInput] | None | UnsetType=UNSET, task: TaskLike | None=None) -> Message:
         """Send 
 
 Post a complete message into a room
@@ -1294,6 +1305,7 @@ Args:
     room (ID): No description
     agent_id (str): No description
     attach_structures (list[StructureInput] | None, optional): No description. 
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     Message
@@ -1304,9 +1316,9 @@ Returns:
         variables['agentId'] = agent_id
         if attach_structures is not UNSET:
             variables['attachStructures'] = attach_structures
-        return (await self.aexecute(SendMutation, variables)).send
+        return (await self.aexecute(SendMutation, variables, task=task)).send
 
-    def send(self, text: str, room: IDCoercible, agent_id: str, attach_structures: list[StructureInput] | None | UnsetType=UNSET) -> Message:
+    def send(self, text: str, room: IDCoercible, agent_id: str, attach_structures: list[StructureInput] | None | UnsetType=UNSET, task: TaskLike | None=None) -> Message:
         """Send 
 
 Post a complete message into a room
@@ -1316,6 +1328,7 @@ Args:
     room (ID): No description
     agent_id (str): No description
     attach_structures (list[StructureInput] | None, optional): No description. 
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     Message
@@ -1326,9 +1339,9 @@ Returns:
         variables['agentId'] = agent_id
         if attach_structures is not UNSET:
             variables['attachStructures'] = attach_structures
-        return self.execute(SendMutation, variables).send
+        return self.execute(SendMutation, variables, task=task).send
 
-    async def acreate_provider(self, kind: ProviderKind, description: str | None | UnsetType=UNSET, name: str | None | UnsetType=UNSET, api_key: str | None | UnsetType=UNSET, api_base: str | None | UnsetType=UNSET, additional_config: Any | None | UnsetType=UNSET) -> Provider:
+    async def acreate_provider(self, kind: ProviderKind, description: str | None | UnsetType=UNSET, name: str | None | UnsetType=UNSET, api_key: str | None | UnsetType=UNSET, api_base: str | None | UnsetType=UNSET, additional_config: Any | None | UnsetType=UNSET, task: TaskLike | None=None) -> Provider:
         """CreateProvider 
 
 Configure a new LLM provider and list the models it offers
@@ -1340,6 +1353,7 @@ Args:
     api_key: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
     api_base: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
     additional_config: The `JSON` scalar type represents JSON values as specified by [ECMA-404](https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf).
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     Provider
@@ -1358,9 +1372,9 @@ Returns:
         if additional_config is not UNSET:
             _input['additionalConfig'] = additional_config
         variables['input'] = _input
-        return (await self.aexecute(CreateProviderMutation, variables)).create_provider
+        return (await self.aexecute(CreateProviderMutation, variables, task=task)).create_provider
 
-    def create_provider(self, kind: ProviderKind, description: str | None | UnsetType=UNSET, name: str | None | UnsetType=UNSET, api_key: str | None | UnsetType=UNSET, api_base: str | None | UnsetType=UNSET, additional_config: Any | None | UnsetType=UNSET) -> Provider:
+    def create_provider(self, kind: ProviderKind, description: str | None | UnsetType=UNSET, name: str | None | UnsetType=UNSET, api_key: str | None | UnsetType=UNSET, api_base: str | None | UnsetType=UNSET, additional_config: Any | None | UnsetType=UNSET, task: TaskLike | None=None) -> Provider:
         """CreateProvider 
 
 Configure a new LLM provider and list the models it offers
@@ -1372,6 +1386,7 @@ Args:
     api_key: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
     api_base: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text.
     additional_config: The `JSON` scalar type represents JSON values as specified by [ECMA-404](https://ecma-international.org/wp-content/uploads/ECMA-404_2nd_edition_december_2017.pdf).
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     Provider
@@ -1390,9 +1405,9 @@ Returns:
         if additional_config is not UNSET:
             _input['additionalConfig'] = additional_config
         variables['input'] = _input
-        return self.execute(CreateProviderMutation, variables).create_provider
+        return self.execute(CreateProviderMutation, variables, task=task).create_provider
 
-    async def apull(self, model_name: str, provider: IDCoercible | None | UnsetType=UNSET) -> PullMutationPull:
+    async def apull(self, model_name: str, provider: IDCoercible | None | UnsetType=UNSET, task: TaskLike | None=None) -> PullMutationPull:
         """Pull 
 
 Pull a model into an Ollama provider
@@ -1400,6 +1415,7 @@ Pull a model into an Ollama provider
 Args:
     model_name: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required)
     provider: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID.
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     PullMutationPull
@@ -1410,9 +1426,9 @@ Returns:
         if provider is not UNSET:
             _input['provider'] = provider
         variables['input'] = _input
-        return (await self.aexecute(PullMutation, variables)).pull
+        return (await self.aexecute(PullMutation, variables, task=task)).pull
 
-    def pull(self, model_name: str, provider: IDCoercible | None | UnsetType=UNSET) -> PullMutationPull:
+    def pull(self, model_name: str, provider: IDCoercible | None | UnsetType=UNSET, task: TaskLike | None=None) -> PullMutationPull:
         """Pull 
 
 Pull a model into an Ollama provider
@@ -1420,6 +1436,7 @@ Pull a model into an Ollama provider
 Args:
     model_name: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required)
     provider: The `ID` scalar type represents a unique identifier, often used to refetch an object or as key for a cache. The ID type appears in a JSON response as a String; however, it is not intended to be human-readable. When expected as an input type, any string (such as `"4"`) or integer (such as `4`) input value will be accepted as an ID.
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     PullMutationPull
@@ -1430,9 +1447,9 @@ Returns:
         if provider is not UNSET:
             _input['provider'] = provider
         variables['input'] = _input
-        return self.execute(PullMutation, variables).pull
+        return self.execute(PullMutation, variables, task=task).pull
 
-    async def acreate_room(self, title: str | None | UnsetType=UNSET, description: str | None | UnsetType=UNSET) -> Room:
+    async def acreate_room(self, title: str | None | UnsetType=UNSET, description: str | None | UnsetType=UNSET, task: TaskLike | None=None) -> Room:
         """CreateRoom 
 
 Open a new room
@@ -1440,6 +1457,7 @@ Open a new room
 Args:
     title (str | None, optional): No description. 
     description (str | None, optional): No description. 
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     Room
@@ -1449,9 +1467,9 @@ Returns:
             variables['title'] = title
         if description is not UNSET:
             variables['description'] = description
-        return (await self.aexecute(CreateRoomMutation, variables)).create_room
+        return (await self.aexecute(CreateRoomMutation, variables, task=task)).create_room
 
-    def create_room(self, title: str | None | UnsetType=UNSET, description: str | None | UnsetType=UNSET) -> Room:
+    def create_room(self, title: str | None | UnsetType=UNSET, description: str | None | UnsetType=UNSET, task: TaskLike | None=None) -> Room:
         """CreateRoom 
 
 Open a new room
@@ -1459,6 +1477,7 @@ Open a new room
 Args:
     title (str | None, optional): No description. 
     description (str | None, optional): No description. 
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     Room
@@ -1468,9 +1487,9 @@ Returns:
             variables['title'] = title
         if description is not UNSET:
             variables['description'] = description
-        return self.execute(CreateRoomMutation, variables).create_room
+        return self.execute(CreateRoomMutation, variables, task=task).create_room
 
-    async def astart_message(self, room: IDCoercible, agent_id: str, parent: IDCoercible | None | UnsetType=UNSET, text: str | None | UnsetType=UNSET) -> ListMessage:
+    async def astart_message(self, room: IDCoercible, agent_id: str, parent: IDCoercible | None | UnsetType=UNSET, text: str | None | UnsetType=UNSET, task: TaskLike | None=None) -> ListMessage:
         """StartMessage 
 
 Open a message to stream text into. Only the starting agent (same user and client) can append to or finish it.
@@ -1480,6 +1499,7 @@ Args:
     agent_id (str): No description
     parent (ID | None, optional): No description. 
     text (str | None, optional): No description. 
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     ListMessage
@@ -1491,9 +1511,9 @@ Returns:
             variables['parent'] = parent
         if text is not UNSET:
             variables['text'] = text
-        return (await self.aexecute(StartMessageMutation, variables)).start_message
+        return (await self.aexecute(StartMessageMutation, variables, task=task)).start_message
 
-    def start_message(self, room: IDCoercible, agent_id: str, parent: IDCoercible | None | UnsetType=UNSET, text: str | None | UnsetType=UNSET) -> ListMessage:
+    def start_message(self, room: IDCoercible, agent_id: str, parent: IDCoercible | None | UnsetType=UNSET, text: str | None | UnsetType=UNSET, task: TaskLike | None=None) -> ListMessage:
         """StartMessage 
 
 Open a message to stream text into. Only the starting agent (same user and client) can append to or finish it.
@@ -1503,6 +1523,7 @@ Args:
     agent_id (str): No description
     parent (ID | None, optional): No description. 
     text (str | None, optional): No description. 
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     ListMessage
@@ -1514,9 +1535,9 @@ Returns:
             variables['parent'] = parent
         if text is not UNSET:
             variables['text'] = text
-        return self.execute(StartMessageMutation, variables).start_message
+        return self.execute(StartMessageMutation, variables, task=task).start_message
 
-    async def aappend_message(self, message: IDCoercible, delta: str) -> ListMessage:
+    async def aappend_message(self, message: IDCoercible, delta: str, task: TaskLike | None=None) -> ListMessage:
         """AppendMessage 
 
 Append a delta to a streaming message. Batch deltas (every ~100-250 ms or ~30 characters) and await each call before sending the next, so they arrive in order.
@@ -1524,6 +1545,7 @@ Append a delta to a streaming message. Batch deltas (every ~100-250 ms or ~30 ch
 Args:
     message (ID): No description
     delta (str): No description
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     ListMessage
@@ -1531,9 +1553,9 @@ Returns:
         variables: dict[str, Any] = {}
         variables['message'] = message
         variables['delta'] = delta
-        return (await self.aexecute(AppendMessageMutation, variables)).append_message
+        return (await self.aexecute(AppendMessageMutation, variables, task=task)).append_message
 
-    def append_message(self, message: IDCoercible, delta: str) -> ListMessage:
+    def append_message(self, message: IDCoercible, delta: str, task: TaskLike | None=None) -> ListMessage:
         """AppendMessage 
 
 Append a delta to a streaming message. Batch deltas (every ~100-250 ms or ~30 characters) and await each call before sending the next, so they arrive in order.
@@ -1541,6 +1563,7 @@ Append a delta to a streaming message. Batch deltas (every ~100-250 ms or ~30 ch
 Args:
     message (ID): No description
     delta (str): No description
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     ListMessage
@@ -1548,9 +1571,9 @@ Returns:
         variables: dict[str, Any] = {}
         variables['message'] = message
         variables['delta'] = delta
-        return self.execute(AppendMessageMutation, variables).append_message
+        return self.execute(AppendMessageMutation, variables, task=task).append_message
 
-    async def afinish_message(self, message: IDCoercible, text: str | None | UnsetType=UNSET, attach_structures: list[StructureInput] | None | UnsetType=UNSET) -> ListMessage:
+    async def afinish_message(self, message: IDCoercible, text: str | None | UnsetType=UNSET, attach_structures: list[StructureInput] | None | UnsetType=UNSET, task: TaskLike | None=None) -> ListMessage:
         """FinishMessage 
 
 Close a streaming message. Pass the full final text so any delta lost on the way is repaired; call it in a finally block so a crashed stream never stays open.
@@ -1559,6 +1582,7 @@ Args:
     message (ID): No description
     text (str | None, optional): No description. 
     attach_structures (list[StructureInput] | None, optional): No description. 
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     ListMessage
@@ -1569,9 +1593,9 @@ Returns:
             variables['text'] = text
         if attach_structures is not UNSET:
             variables['attachStructures'] = attach_structures
-        return (await self.aexecute(FinishMessageMutation, variables)).finish_message
+        return (await self.aexecute(FinishMessageMutation, variables, task=task)).finish_message
 
-    def finish_message(self, message: IDCoercible, text: str | None | UnsetType=UNSET, attach_structures: list[StructureInput] | None | UnsetType=UNSET) -> ListMessage:
+    def finish_message(self, message: IDCoercible, text: str | None | UnsetType=UNSET, attach_structures: list[StructureInput] | None | UnsetType=UNSET, task: TaskLike | None=None) -> ListMessage:
         """FinishMessage 
 
 Close a streaming message. Pass the full final text so any delta lost on the way is repaired; call it in a finally block so a crashed stream never stays open.
@@ -1580,6 +1604,7 @@ Args:
     message (ID): No description
     text (str | None, optional): No description. 
     attach_structures (list[StructureInput] | None, optional): No description. 
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     ListMessage
@@ -1590,39 +1615,41 @@ Returns:
             variables['text'] = text
         if attach_structures is not UNSET:
             variables['attachStructures'] = attach_structures
-        return self.execute(FinishMessageMutation, variables).finish_message
+        return self.execute(FinishMessageMutation, variables, task=task).finish_message
 
-    async def aget_chroma_collection(self, id: IDCoercible) -> ChromaCollection:
+    async def aget_chroma_collection(self, id: IDCoercible, task: TaskLike | None=None) -> ChromaCollection:
         """GetChromaCollection 
 
 Get a single Chroma collection by ID
 
 Args:
     id (ID): No description
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     ChromaCollection
 """
         variables: dict[str, Any] = {}
         variables['id'] = id
-        return (await self.aexecute(GetChromaCollectionQuery, variables)).chroma_collection
+        return (await self.aexecute(GetChromaCollectionQuery, variables, task=task)).chroma_collection
 
-    def get_chroma_collection(self, id: IDCoercible) -> ChromaCollection:
+    def get_chroma_collection(self, id: IDCoercible, task: TaskLike | None=None) -> ChromaCollection:
         """GetChromaCollection 
 
 Get a single Chroma collection by ID
 
 Args:
     id (ID): No description
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     ChromaCollection
 """
         variables: dict[str, Any] = {}
         variables['id'] = id
-        return self.execute(GetChromaCollectionQuery, variables).chroma_collection
+        return self.execute(GetChromaCollectionQuery, variables, task=task).chroma_collection
 
-    async def asearch_chroma_collection(self, search: str | None | UnsetType=UNSET, values: list[IDCoercible] | None | UnsetType=UNSET, limit: int | None | UnsetType=UNSET, offset: int | None | UnsetType=UNSET) -> tuple[SearchChromaCollectionQueryOptions, ...]:
+    async def asearch_chroma_collection(self, search: str | None | UnsetType=UNSET, values: list[IDCoercible] | None | UnsetType=UNSET, limit: int | None | UnsetType=UNSET, offset: int | None | UnsetType=UNSET, task: TaskLike | None=None) -> tuple[SearchChromaCollectionQueryOptions, ...]:
         """SearchChromaCollection 
 
 List this organization's Chroma collections
@@ -1632,6 +1659,7 @@ Args:
     values (list[ID] | None, optional): No description. 
     limit (int | None, optional): No description. Defaults to 10
     offset (int | None, optional): No description. Defaults to 0
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     list[SearchChromaCollectionQueryChromaCollections]
@@ -1645,9 +1673,9 @@ Returns:
             variables['limit'] = limit
         if offset is not UNSET:
             variables['offset'] = offset
-        return (await self.aexecute(SearchChromaCollectionQuery, variables)).options
+        return (await self.aexecute(SearchChromaCollectionQuery, variables, task=task)).options
 
-    def search_chroma_collection(self, search: str | None | UnsetType=UNSET, values: list[IDCoercible] | None | UnsetType=UNSET, limit: int | None | UnsetType=UNSET, offset: int | None | UnsetType=UNSET) -> tuple[SearchChromaCollectionQueryOptions, ...]:
+    def search_chroma_collection(self, search: str | None | UnsetType=UNSET, values: list[IDCoercible] | None | UnsetType=UNSET, limit: int | None | UnsetType=UNSET, offset: int | None | UnsetType=UNSET, task: TaskLike | None=None) -> tuple[SearchChromaCollectionQueryOptions, ...]:
         """SearchChromaCollection 
 
 List this organization's Chroma collections
@@ -1657,6 +1685,7 @@ Args:
     values (list[ID] | None, optional): No description. 
     limit (int | None, optional): No description. Defaults to 10
     offset (int | None, optional): No description. Defaults to 0
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     list[SearchChromaCollectionQueryChromaCollections]
@@ -1670,9 +1699,9 @@ Returns:
             variables['limit'] = limit
         if offset is not UNSET:
             variables['offset'] = offset
-        return self.execute(SearchChromaCollectionQuery, variables).options
+        return self.execute(SearchChromaCollectionQuery, variables, task=task).options
 
-    async def alist_chroma_collections(self, filter: ChromaCollectionFilter | None | UnsetType=UNSET, order: list[ChromaCollectionOrder] | None | UnsetType=UNSET, pagination: OffsetPaginationInput | None | UnsetType=UNSET) -> tuple[ChromaCollection, ...]:
+    async def alist_chroma_collections(self, filter: ChromaCollectionFilter | None | UnsetType=UNSET, order: list[ChromaCollectionOrder] | None | UnsetType=UNSET, pagination: OffsetPaginationInput | None | UnsetType=UNSET, task: TaskLike | None=None) -> tuple[ChromaCollection, ...]:
         """ListChromaCollections 
 
 List this organization's Chroma collections
@@ -1681,6 +1710,7 @@ Args:
     filter (ChromaCollectionFilter | None, optional): No description. 
     order (list[ChromaCollectionOrder] | None, optional): No description. 
     pagination (OffsetPaginationInput | None, optional): No description. 
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     list[ChromaCollection]
@@ -1692,9 +1722,9 @@ Returns:
             variables['order'] = order
         if pagination is not UNSET:
             variables['pagination'] = pagination
-        return (await self.aexecute(ListChromaCollectionsQuery, variables)).chroma_collections
+        return (await self.aexecute(ListChromaCollectionsQuery, variables, task=task)).chroma_collections
 
-    def list_chroma_collections(self, filter: ChromaCollectionFilter | None | UnsetType=UNSET, order: list[ChromaCollectionOrder] | None | UnsetType=UNSET, pagination: OffsetPaginationInput | None | UnsetType=UNSET) -> tuple[ChromaCollection, ...]:
+    def list_chroma_collections(self, filter: ChromaCollectionFilter | None | UnsetType=UNSET, order: list[ChromaCollectionOrder] | None | UnsetType=UNSET, pagination: OffsetPaginationInput | None | UnsetType=UNSET, task: TaskLike | None=None) -> tuple[ChromaCollection, ...]:
         """ListChromaCollections 
 
 List this organization's Chroma collections
@@ -1703,6 +1733,7 @@ Args:
     filter (ChromaCollectionFilter | None, optional): No description. 
     order (list[ChromaCollectionOrder] | None, optional): No description. 
     pagination (OffsetPaginationInput | None, optional): No description. 
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     list[ChromaCollection]
@@ -1714,9 +1745,9 @@ Returns:
             variables['order'] = order
         if pagination is not UNSET:
             variables['pagination'] = pagination
-        return self.execute(ListChromaCollectionsQuery, variables).chroma_collections
+        return self.execute(ListChromaCollectionsQuery, variables, task=task).chroma_collections
 
-    async def aquery_documents(self, collection: IDCoercible, query_texts: Iterable[str], n_results: int, where: Any | None | UnsetType=UNSET) -> tuple[Document, ...]:
+    async def aquery_documents(self, collection: IDCoercible, query_texts: Iterable[str], n_results: int, where: Any | None | UnsetType=UNSET, task: TaskLike | None=None) -> tuple[Document, ...]:
         """QueryDocuments 
 
 Search a collection for the documents most similar to some text
@@ -1726,6 +1757,7 @@ Args:
     query_texts: One or more query texts; the union of their results is returned, deduplicated by document
     n_results: Results per query text
     where: Chroma metadata filter applied to every query
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     list[Document]
@@ -1738,9 +1770,9 @@ Returns:
         if where is not UNSET:
             _input['where'] = where
         variables['input'] = _input
-        return (await self.aexecute(QueryDocumentsQuery, variables)).documents
+        return (await self.aexecute(QueryDocumentsQuery, variables, task=task)).documents
 
-    def query_documents(self, collection: IDCoercible, query_texts: Iterable[str], n_results: int, where: Any | None | UnsetType=UNSET) -> tuple[Document, ...]:
+    def query_documents(self, collection: IDCoercible, query_texts: Iterable[str], n_results: int, where: Any | None | UnsetType=UNSET, task: TaskLike | None=None) -> tuple[Document, ...]:
         """QueryDocuments 
 
 Search a collection for the documents most similar to some text
@@ -1750,6 +1782,7 @@ Args:
     query_texts: One or more query texts; the union of their results is returned, deduplicated by document
     n_results: Results per query text
     where: Chroma metadata filter applied to every query
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     list[Document]
@@ -1762,39 +1795,41 @@ Returns:
         if where is not UNSET:
             _input['where'] = where
         variables['input'] = _input
-        return self.execute(QueryDocumentsQuery, variables).documents
+        return self.execute(QueryDocumentsQuery, variables, task=task).documents
 
-    async def aget_llm_model(self, id: IDCoercible) -> LLMModel:
+    async def aget_llm_model(self, id: IDCoercible, task: TaskLike | None=None) -> LLMModel:
         """GetLLMModel 
 
 Get a single LLM model by ID
 
 Args:
     id (ID): No description
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     LLMModel
 """
         variables: dict[str, Any] = {}
         variables['id'] = id
-        return (await self.aexecute(GetLLMModelQuery, variables)).llm_model
+        return (await self.aexecute(GetLLMModelQuery, variables, task=task)).llm_model
 
-    def get_llm_model(self, id: IDCoercible) -> LLMModel:
+    def get_llm_model(self, id: IDCoercible, task: TaskLike | None=None) -> LLMModel:
         """GetLLMModel 
 
 Get a single LLM model by ID
 
 Args:
     id (ID): No description
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     LLMModel
 """
         variables: dict[str, Any] = {}
         variables['id'] = id
-        return self.execute(GetLLMModelQuery, variables).llm_model
+        return self.execute(GetLLMModelQuery, variables, task=task).llm_model
 
-    async def asearch_llm_models(self, search: str | None | UnsetType=UNSET, values: list[IDCoercible] | None | UnsetType=UNSET, limit: int | None | UnsetType=UNSET, offset: int | None | UnsetType=UNSET) -> tuple[SearchLLMModelsQueryOptions, ...]:
+    async def asearch_llm_models(self, search: str | None | UnsetType=UNSET, values: list[IDCoercible] | None | UnsetType=UNSET, limit: int | None | UnsetType=UNSET, offset: int | None | UnsetType=UNSET, task: TaskLike | None=None) -> tuple[SearchLLMModelsQueryOptions, ...]:
         """SearchLLMModels 
 
 List the LLM models reachable through this organization's providers
@@ -1804,6 +1839,7 @@ Args:
     values (list[ID] | None, optional): No description. 
     limit (int | None, optional): No description. Defaults to 10
     offset (int | None, optional): No description. Defaults to 0
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     list[SearchLLMModelsQueryLlmModels]
@@ -1817,9 +1853,9 @@ Returns:
             variables['limit'] = limit
         if offset is not UNSET:
             variables['offset'] = offset
-        return (await self.aexecute(SearchLLMModelsQuery, variables)).options
+        return (await self.aexecute(SearchLLMModelsQuery, variables, task=task)).options
 
-    def search_llm_models(self, search: str | None | UnsetType=UNSET, values: list[IDCoercible] | None | UnsetType=UNSET, limit: int | None | UnsetType=UNSET, offset: int | None | UnsetType=UNSET) -> tuple[SearchLLMModelsQueryOptions, ...]:
+    def search_llm_models(self, search: str | None | UnsetType=UNSET, values: list[IDCoercible] | None | UnsetType=UNSET, limit: int | None | UnsetType=UNSET, offset: int | None | UnsetType=UNSET, task: TaskLike | None=None) -> tuple[SearchLLMModelsQueryOptions, ...]:
         """SearchLLMModels 
 
 List the LLM models reachable through this organization's providers
@@ -1829,6 +1865,7 @@ Args:
     values (list[ID] | None, optional): No description. 
     limit (int | None, optional): No description. Defaults to 10
     offset (int | None, optional): No description. Defaults to 0
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     list[SearchLLMModelsQueryLlmModels]
@@ -1842,9 +1879,9 @@ Returns:
             variables['limit'] = limit
         if offset is not UNSET:
             variables['offset'] = offset
-        return self.execute(SearchLLMModelsQuery, variables).options
+        return self.execute(SearchLLMModelsQuery, variables, task=task).options
 
-    async def alist_ll_models(self, filter: LLMModelFilter | None | UnsetType=UNSET, order: list[LLMModelOrder] | None | UnsetType=UNSET, pagination: OffsetPaginationInput | None | UnsetType=UNSET) -> tuple[LLMModel, ...]:
+    async def alist_ll_models(self, filter: LLMModelFilter | None | UnsetType=UNSET, order: list[LLMModelOrder] | None | UnsetType=UNSET, pagination: OffsetPaginationInput | None | UnsetType=UNSET, task: TaskLike | None=None) -> tuple[LLMModel, ...]:
         """ListLLModels 
 
 List the LLM models reachable through this organization's providers
@@ -1853,6 +1890,7 @@ Args:
     filter (LLMModelFilter | None, optional): No description. 
     order (list[LLMModelOrder] | None, optional): No description. 
     pagination (OffsetPaginationInput | None, optional): No description. 
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     list[LLMModel]
@@ -1864,9 +1902,9 @@ Returns:
             variables['order'] = order
         if pagination is not UNSET:
             variables['pagination'] = pagination
-        return (await self.aexecute(ListLLModelsQuery, variables)).llm_models
+        return (await self.aexecute(ListLLModelsQuery, variables, task=task)).llm_models
 
-    def list_ll_models(self, filter: LLMModelFilter | None | UnsetType=UNSET, order: list[LLMModelOrder] | None | UnsetType=UNSET, pagination: OffsetPaginationInput | None | UnsetType=UNSET) -> tuple[LLMModel, ...]:
+    def list_ll_models(self, filter: LLMModelFilter | None | UnsetType=UNSET, order: list[LLMModelOrder] | None | UnsetType=UNSET, pagination: OffsetPaginationInput | None | UnsetType=UNSET, task: TaskLike | None=None) -> tuple[LLMModel, ...]:
         """ListLLModels 
 
 List the LLM models reachable through this organization's providers
@@ -1875,6 +1913,7 @@ Args:
     filter (LLMModelFilter | None, optional): No description. 
     order (list[LLMModelOrder] | None, optional): No description. 
     pagination (OffsetPaginationInput | None, optional): No description. 
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     list[LLMModel]
@@ -1886,39 +1925,41 @@ Returns:
             variables['order'] = order
         if pagination is not UNSET:
             variables['pagination'] = pagination
-        return self.execute(ListLLModelsQuery, variables).llm_models
+        return self.execute(ListLLModelsQuery, variables, task=task).llm_models
 
-    async def aget_message(self, id: IDCoercible) -> Message:
+    async def aget_message(self, id: IDCoercible, task: TaskLike | None=None) -> Message:
         """GetMessage 
 
 Get a single message by ID
 
 Args:
     id (ID): No description
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     Message
 """
         variables: dict[str, Any] = {}
         variables['id'] = id
-        return (await self.aexecute(GetMessageQuery, variables)).message
+        return (await self.aexecute(GetMessageQuery, variables, task=task)).message
 
-    def get_message(self, id: IDCoercible) -> Message:
+    def get_message(self, id: IDCoercible, task: TaskLike | None=None) -> Message:
         """GetMessage 
 
 Get a single message by ID
 
 Args:
     id (ID): No description
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     Message
 """
         variables: dict[str, Any] = {}
         variables['id'] = id
-        return self.execute(GetMessageQuery, variables).message
+        return self.execute(GetMessageQuery, variables, task=task).message
 
-    async def asearch_messages(self, search: str | None | UnsetType=UNSET, values: list[IDCoercible] | None | UnsetType=UNSET, limit: int | None | UnsetType=UNSET, offset: int | None | UnsetType=UNSET) -> tuple[SearchMessagesQueryOptions, ...]:
+    async def asearch_messages(self, search: str | None | UnsetType=UNSET, values: list[IDCoercible] | None | UnsetType=UNSET, limit: int | None | UnsetType=UNSET, offset: int | None | UnsetType=UNSET, task: TaskLike | None=None) -> tuple[SearchMessagesQueryOptions, ...]:
         """SearchMessages 
 
 List the messages in this organization's rooms
@@ -1928,6 +1969,7 @@ Args:
     values (list[ID] | None, optional): No description. 
     limit (int | None, optional): No description. Defaults to 10
     offset (int | None, optional): No description. Defaults to 0
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     list[SearchMessagesQueryMessages]
@@ -1941,9 +1983,9 @@ Returns:
             variables['limit'] = limit
         if offset is not UNSET:
             variables['offset'] = offset
-        return (await self.aexecute(SearchMessagesQuery, variables)).options
+        return (await self.aexecute(SearchMessagesQuery, variables, task=task)).options
 
-    def search_messages(self, search: str | None | UnsetType=UNSET, values: list[IDCoercible] | None | UnsetType=UNSET, limit: int | None | UnsetType=UNSET, offset: int | None | UnsetType=UNSET) -> tuple[SearchMessagesQueryOptions, ...]:
+    def search_messages(self, search: str | None | UnsetType=UNSET, values: list[IDCoercible] | None | UnsetType=UNSET, limit: int | None | UnsetType=UNSET, offset: int | None | UnsetType=UNSET, task: TaskLike | None=None) -> tuple[SearchMessagesQueryOptions, ...]:
         """SearchMessages 
 
 List the messages in this organization's rooms
@@ -1953,6 +1995,7 @@ Args:
     values (list[ID] | None, optional): No description. 
     limit (int | None, optional): No description. Defaults to 10
     offset (int | None, optional): No description. Defaults to 0
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     list[SearchMessagesQueryMessages]
@@ -1966,9 +2009,9 @@ Returns:
             variables['limit'] = limit
         if offset is not UNSET:
             variables['offset'] = offset
-        return self.execute(SearchMessagesQuery, variables).options
+        return self.execute(SearchMessagesQuery, variables, task=task).options
 
-    async def alist_messages(self, filter: MessageFilter | None | UnsetType=UNSET, order: list[MessageOrder] | None | UnsetType=UNSET, pagination: OffsetPaginationInput | None | UnsetType=UNSET) -> tuple[ListMessage, ...]:
+    async def alist_messages(self, filter: MessageFilter | None | UnsetType=UNSET, order: list[MessageOrder] | None | UnsetType=UNSET, pagination: OffsetPaginationInput | None | UnsetType=UNSET, task: TaskLike | None=None) -> tuple[ListMessage, ...]:
         """ListMessages 
 
 List the messages in this organization's rooms
@@ -1977,6 +2020,7 @@ Args:
     filter (MessageFilter | None, optional): No description. 
     order (list[MessageOrder] | None, optional): No description. 
     pagination (OffsetPaginationInput | None, optional): No description. 
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     list[ListMessage]
@@ -1988,9 +2032,9 @@ Returns:
             variables['order'] = order
         if pagination is not UNSET:
             variables['pagination'] = pagination
-        return (await self.aexecute(ListMessagesQuery, variables)).messages
+        return (await self.aexecute(ListMessagesQuery, variables, task=task)).messages
 
-    def list_messages(self, filter: MessageFilter | None | UnsetType=UNSET, order: list[MessageOrder] | None | UnsetType=UNSET, pagination: OffsetPaginationInput | None | UnsetType=UNSET) -> tuple[ListMessage, ...]:
+    def list_messages(self, filter: MessageFilter | None | UnsetType=UNSET, order: list[MessageOrder] | None | UnsetType=UNSET, pagination: OffsetPaginationInput | None | UnsetType=UNSET, task: TaskLike | None=None) -> tuple[ListMessage, ...]:
         """ListMessages 
 
 List the messages in this organization's rooms
@@ -1999,6 +2043,7 @@ Args:
     filter (MessageFilter | None, optional): No description. 
     order (list[MessageOrder] | None, optional): No description. 
     pagination (OffsetPaginationInput | None, optional): No description. 
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     list[ListMessage]
@@ -2010,39 +2055,41 @@ Returns:
             variables['order'] = order
         if pagination is not UNSET:
             variables['pagination'] = pagination
-        return self.execute(ListMessagesQuery, variables).messages
+        return self.execute(ListMessagesQuery, variables, task=task).messages
 
-    async def aget_room(self, id: IDCoercible) -> Room:
+    async def aget_room(self, id: IDCoercible, task: TaskLike | None=None) -> Room:
         """GetRoom 
 
 Get a single room by ID
 
 Args:
     id (ID): No description
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     Room
 """
         variables: dict[str, Any] = {}
         variables['id'] = id
-        return (await self.aexecute(GetRoomQuery, variables)).room
+        return (await self.aexecute(GetRoomQuery, variables, task=task)).room
 
-    def get_room(self, id: IDCoercible) -> Room:
+    def get_room(self, id: IDCoercible, task: TaskLike | None=None) -> Room:
         """GetRoom 
 
 Get a single room by ID
 
 Args:
     id (ID): No description
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     Room
 """
         variables: dict[str, Any] = {}
         variables['id'] = id
-        return self.execute(GetRoomQuery, variables).room
+        return self.execute(GetRoomQuery, variables, task=task).room
 
-    async def asearch_rooms(self, search: str | None | UnsetType=UNSET, values: list[IDCoercible] | None | UnsetType=UNSET, limit: int | None | UnsetType=UNSET, offset: int | None | UnsetType=UNSET) -> tuple[SearchRoomsQueryOptions, ...]:
+    async def asearch_rooms(self, search: str | None | UnsetType=UNSET, values: list[IDCoercible] | None | UnsetType=UNSET, limit: int | None | UnsetType=UNSET, offset: int | None | UnsetType=UNSET, task: TaskLike | None=None) -> tuple[SearchRoomsQueryOptions, ...]:
         """SearchRooms 
 
 List the rooms in this organization
@@ -2052,6 +2099,7 @@ Args:
     values (list[ID] | None, optional): No description. 
     limit (int | None, optional): No description. Defaults to 10
     offset (int | None, optional): No description. Defaults to 0
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     list[SearchRoomsQueryRooms]
@@ -2065,9 +2113,9 @@ Returns:
             variables['limit'] = limit
         if offset is not UNSET:
             variables['offset'] = offset
-        return (await self.aexecute(SearchRoomsQuery, variables)).options
+        return (await self.aexecute(SearchRoomsQuery, variables, task=task)).options
 
-    def search_rooms(self, search: str | None | UnsetType=UNSET, values: list[IDCoercible] | None | UnsetType=UNSET, limit: int | None | UnsetType=UNSET, offset: int | None | UnsetType=UNSET) -> tuple[SearchRoomsQueryOptions, ...]:
+    def search_rooms(self, search: str | None | UnsetType=UNSET, values: list[IDCoercible] | None | UnsetType=UNSET, limit: int | None | UnsetType=UNSET, offset: int | None | UnsetType=UNSET, task: TaskLike | None=None) -> tuple[SearchRoomsQueryOptions, ...]:
         """SearchRooms 
 
 List the rooms in this organization
@@ -2077,6 +2125,7 @@ Args:
     values (list[ID] | None, optional): No description. 
     limit (int | None, optional): No description. Defaults to 10
     offset (int | None, optional): No description. Defaults to 0
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     list[SearchRoomsQueryRooms]
@@ -2090,9 +2139,9 @@ Returns:
             variables['limit'] = limit
         if offset is not UNSET:
             variables['offset'] = offset
-        return self.execute(SearchRoomsQuery, variables).options
+        return self.execute(SearchRoomsQuery, variables, task=task).options
 
-    async def alist_rooms(self, filter: RoomFilter | None | UnsetType=UNSET, order: list[RoomOrder] | None | UnsetType=UNSET, pagination: OffsetPaginationInput | None | UnsetType=UNSET) -> tuple[Room, ...]:
+    async def alist_rooms(self, filter: RoomFilter | None | UnsetType=UNSET, order: list[RoomOrder] | None | UnsetType=UNSET, pagination: OffsetPaginationInput | None | UnsetType=UNSET, task: TaskLike | None=None) -> tuple[Room, ...]:
         """ListRooms 
 
 List the rooms in this organization
@@ -2101,6 +2150,7 @@ Args:
     filter (RoomFilter | None, optional): No description. 
     order (list[RoomOrder] | None, optional): No description. 
     pagination (OffsetPaginationInput | None, optional): No description. 
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     list[Room]
@@ -2112,9 +2162,9 @@ Returns:
             variables['order'] = order
         if pagination is not UNSET:
             variables['pagination'] = pagination
-        return (await self.aexecute(ListRoomsQuery, variables)).rooms
+        return (await self.aexecute(ListRoomsQuery, variables, task=task)).rooms
 
-    def list_rooms(self, filter: RoomFilter | None | UnsetType=UNSET, order: list[RoomOrder] | None | UnsetType=UNSET, pagination: OffsetPaginationInput | None | UnsetType=UNSET) -> tuple[Room, ...]:
+    def list_rooms(self, filter: RoomFilter | None | UnsetType=UNSET, order: list[RoomOrder] | None | UnsetType=UNSET, pagination: OffsetPaginationInput | None | UnsetType=UNSET, task: TaskLike | None=None) -> tuple[Room, ...]:
         """ListRooms 
 
 List the rooms in this organization
@@ -2123,6 +2173,7 @@ Args:
     filter (RoomFilter | None, optional): No description. 
     order (list[RoomOrder] | None, optional): No description. 
     pagination (OffsetPaginationInput | None, optional): No description. 
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     list[Room]
@@ -2134,9 +2185,9 @@ Returns:
             variables['order'] = order
         if pagination is not UNSET:
             variables['pagination'] = pagination
-        return self.execute(ListRoomsQuery, variables).rooms
+        return self.execute(ListRoomsQuery, variables, task=task).rooms
 
-    async def awatch_room(self, room: IDCoercible, agent_id: IDCoercible, filter_own: bool | None | UnsetType=UNSET) -> AsyncIterator[WatchRoomSubscriptionRoom]:
+    async def awatch_room(self, room: IDCoercible, agent_id: IDCoercible, filter_own: bool | None | UnsetType=UNSET, task: TaskLike | None=None) -> AsyncIterator[WatchRoomSubscriptionRoom]:
         """WatchRoom 
 
 Join a room and receive its events: messages created, streamed into and finished, and agents joining or leaving
@@ -2145,6 +2196,7 @@ Args:
     room (ID): No description
     agent_id (ID): No description
     filter_own (bool | None, optional): No description. 
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     WatchRoomSubscriptionRoom
@@ -2154,10 +2206,10 @@ Returns:
         variables['agentId'] = agent_id
         if filter_own is not UNSET:
             variables['filterOwn'] = filter_own
-        async for event in self.asubscribe(WatchRoomSubscription, variables):
+        async for event in self.asubscribe(WatchRoomSubscription, variables, task=task):
             yield event.room
 
-    def watch_room(self, room: IDCoercible, agent_id: IDCoercible, filter_own: bool | None | UnsetType=UNSET) -> Iterator[WatchRoomSubscriptionRoom]:
+    def watch_room(self, room: IDCoercible, agent_id: IDCoercible, filter_own: bool | None | UnsetType=UNSET, task: TaskLike | None=None) -> Iterator[WatchRoomSubscriptionRoom]:
         """WatchRoom 
 
 Join a room and receive its events: messages created, streamed into and finished, and agents joining or leaving
@@ -2166,6 +2218,7 @@ Args:
     room (ID): No description
     agent_id (ID): No description
     filter_own (bool | None, optional): No description. 
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
 
 Returns:
     WatchRoomSubscriptionRoom
@@ -2175,7 +2228,7 @@ Returns:
         variables['agentId'] = agent_id
         if filter_own is not UNSET:
             variables['filterOwn'] = filter_own
-        for event in self.subscribe(WatchRoomSubscription, variables):
+        for event in self.subscribe(WatchRoomSubscription, variables, task=task):
             yield event.room
 AddDocumentsToCollectionInput.model_rebuild()
 ChatInput.model_rebuild()
