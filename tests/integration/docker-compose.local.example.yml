@@ -4,7 +4,7 @@
 # Copy this file to docker-compose.local.yml (gitignored) and point the volume at
 # your checkout; tests/conftest.py passes it to dokker when it exists.
 #
-# The base compose pins `jhnnsrs/alpaka:${ALPAKA_SERVICE_TAG:-next}`, so every
+# The base compose pins `jhnnsrs/alpaka:${ALPAKA_SERVICE_TAG:-latest}`, so every
 # server-side change is invisible here until someone rebuilds and pushes that
 # image -- a schema-drift failure that reads like a mass client regression but is
 # just image lag. This file mounts the working tree over /workspace. It is
