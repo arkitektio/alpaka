@@ -74,7 +74,7 @@ def client(rath: AlpakaRath | None = None) -> Alpaka:
     fake rath built without validation."""
     if rath is None:
         return Alpaka.model_construct(
-            rath=FakeRath(), task_token=None, llm_url=LLM_URL, tokens=StaticTokens()
+            rath=FakeRath(), llm_url=LLM_URL, tokens=StaticTokens()
         )
     return Alpaka(rath=rath, llm_url=LLM_URL, tokens=StaticTokens())
 
@@ -113,7 +113,7 @@ async def test_unset_arguments_stay_off_the_wire() -> None:
 
 
 def test_every_operation_is_a_method_and_the_client_has_only_its_fields() -> None:
-    assert set(Alpaka.model_fields) == {"rath", "task_token", "llm_url", "tokens"}
+    assert set(Alpaka.model_fields) == {"rath", "llm_url", "tokens"}
     for name in ("aget_room", "get_room", "achat", "astart_message", "awatch_room"):
         assert callable(getattr(Alpaka, name))
 
@@ -175,18 +175,6 @@ def test_stream_into_room_needs_a_client() -> None:
 
 
 
-@pytest.mark.asyncio
-async def test_a_task_view_stamps_its_token() -> None:
-    from types import SimpleNamespace
-
-    base = Alpaka.model_construct(rath=FakeRath(), task_token=None)
-    view = base.for_task(SimpleNamespace(token="tok"))
-
-    await base.aexecute(GetRoom, {"id": "r"})
-    await view.aexecute(GetRoom, {"id": "r"})
-
-    assert base.rath.headers == [None, {TASK_HEADER: "tok"}]
-    assert base.task_token is None and view.rath is base.rath
 
 
 @pytest.mark.asyncio
@@ -196,14 +184,14 @@ async def test_the_ambient_task_is_stamped_without_a_view() -> None:
 
     from rath.task import task_scope
 
-    base = Alpaka.model_construct(rath=FakeRath(), task_token=None)
+    base = Alpaka.model_construct(rath=FakeRath())
 
     await base.aexecute(GetRoom, {"id": "r"})
     with task_scope(SimpleNamespace(token="tok")):
         await base.aexecute(GetRoom, {"id": "r"})
 
     assert base.rath.headers == [None, {TASK_HEADER: "tok"}]
-    assert base.task_token is None, "the shared client is never changed"
+    assert "task_token" not in Alpaka.model_fields, "no per-task copy exists"
 
 
 @pytest.mark.asyncio
@@ -212,7 +200,7 @@ async def test_a_task_named_at_the_call_beats_the_ambient_one() -> None:
 
     from rath.task import task_scope
 
-    base = Alpaka.model_construct(rath=FakeRath(), task_token=None)
+    base = Alpaka.model_construct(rath=FakeRath())
     with task_scope(SimpleNamespace(token="ambient")):
         await base.aexecute(GetRoom, {"id": "r"}, task=SimpleNamespace(token="explicit"))
 

@@ -44,7 +44,7 @@ TOKEN_SEQUENCE = [f"tok-{i}" for i in range(1, 6)]
 
 def client_with(tokens: object) -> Alpaka:
     """An Alpaka as the service builds it, minus the rath: endpoint and tokens."""
-    return Alpaka.model_construct(rath=None, task_token=None, llm_url=LLM_URL, tokens=tokens)
+    return Alpaka.model_construct(rath=None, llm_url=LLM_URL, tokens=tokens)
 
 
 @pytest.fixture
@@ -134,10 +134,3 @@ def test_a_foreign_http_client_is_refused(tokens):
         build_openai(LLM_URL, tokens, http_client=httpx.Client())
 
 
-def test_a_task_view_shares_the_tunnel(tokens):
-    """Inside an action the injected client is a per-task view: same endpoint, same SDK."""
-    client = client_with(tokens)
-    sdk = client.openai
-    view = client.for_task(type("T", (), {"token": "t"})())
-    assert view.openai is sdk
-    assert view.get_endpoint().api_key == "static-token"

@@ -45,10 +45,6 @@ class Alpaka(Composition, AlpakaApi):
         ...,
         description="The Rath client used to interact with the Alpaka API.",
     )
-    task_token: str | None = Field(
-        default=None,
-        description="The provenance token its requests carry; set on a per-task view only",
-    )
     llm_url: str = Field(
         ..., description="The OpenAI-compatible endpoint of the alpaka server, `<alpaka>/llm/v1`"
     )
@@ -102,17 +98,6 @@ class Alpaka(Composition, AlpakaApi):
 
         return AlpakaEndpoint(base_url=self.llm_url, api_key=await self.tokens.aget_token())
 
-    def for_task(self, task: Any) -> "Alpaka":  # noqa: ANN401
-        """A view of this client whose requests name the task they are made for.
-
-        Shares the rath (and its connections) and the tunnel's SDK clients; only
-        the token differs. rekuest hands an injected ``alpaka: Alpaka`` out through
-        this.
-        """
-        view = self.model_copy(update={"task_token": task.token})
-        view._openai = self._openai
-        view._aopenai = self._aopenai
-        return view
 
     @staticmethod
     def _serialize(operation: type[TOperation], variables: dict[str, Any]) -> dict[str, Any]:
@@ -123,11 +108,11 @@ class Alpaka(Composition, AlpakaApi):
     def _headers(self, task: "TaskLike | None" = None) -> dict[str, Any] | None:
         """The per-call headers: the provenance token of the task this call is for.
 
-        ``task`` when the caller named one, else whichever task is running. A
-        per-task view of this client (``for_task``) still wins while it exists --
-        it is on its way out, and until then it is the more specific answer.
+        ``task`` when the caller named one, else whichever task is running. There
+        is no per-task copy of this client: one instance serves every task, and
+        what a request is attributed to is decided per call.
         """
-        token = self.task_token if self.task_token else token_of(task)
+        token = token_of(task)
         return {TASK_HEADER: token} if token else None
 
     def execute(
