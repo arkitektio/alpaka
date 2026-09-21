@@ -87,48 +87,16 @@
                     "type": "turms.plugins.operations.OperationsPlugin"
                 },
                 {
-                    "type": "turms.plugins.funcs.FuncsPlugin",
+                    "type": "turms.plugins.client.ClientPlugin",
+                    "client_class": "AlpakaApi",
+                    "reserved_from": [
+                        "alpaka.alpaka.Alpaka"
+                    ],
                     "coercible_scalars": {
                         "ID": "rath.scalars.IDCoercible"
                     },
                     "expand_input_types": [
                         "input"
-                    ],
-                    "global_kwargs": [
-                        {
-                            "type": "alpaka.rath.AlpakaRath",
-                            "key": "rath",
-                            "description": "The client we want to use (defaults to the currently active client)"
-                        }
-                    ],
-                    "definitions": [
-                        {
-                            "type": "subscription",
-                            "is_async": true,
-                            "use": "alpaka.funcs.asubscribe"
-                        },
-                        {
-                            "type": "query",
-                            "is_async": true,
-                            "use": "alpaka.funcs.aexecute"
-                        },
-                        {
-                            "type": "mutation",
-                            "is_async": true,
-                            "use": "alpaka.funcs.aexecute"
-                        },
-                        {
-                            "type": "subscription",
-                            "use": "alpaka.funcs.subscribe"
-                        },
-                        {
-                            "type": "query",
-                            "use": "alpaka.funcs.execute"
-                        },
-                        {
-                            "type": "mutation",
-                            "use": "alpaka.funcs.execute"
-                        }
                     ]
                 }
             ],

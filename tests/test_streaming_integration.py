@@ -16,46 +16,41 @@ import threading
 
 import pytest
 
+from alpaka.alpaka import Alpaka
+
 from alpaka.api.schema import (
     RoomEventKind,
-    append_message,
-    create_room,
-    finish_message,
-    get_message,
-    start_message,
-    watch_room,
 )
 
-from .conftest import DeployedAlpaka
 
 
 @pytest.mark.integration
-def test_start_append_finish_accumulates(deployed_app: DeployedAlpaka) -> None:
+def test_start_append_finish_accumulates(alpaka: Alpaka) -> None:
     """The server concatenates the deltas; finishing closes the message."""
-    room = create_room(title="Streaming Room", description="Tokens land here.")
+    room = alpaka.create_room(title="Streaming Room", description="Tokens land here.")
 
-    message = start_message(room=room.id, agent_id="assistant")
+    message = alpaka.start_message(room=room.id, agent_id="assistant")
     assert message.is_streaming is True
 
     for token in ("Hel", "lo ", "world"):
-        append_message(message=message.id, delta=token)
+        alpaka.append_message(message=message.id, delta=token)
 
-    finished = finish_message(message=message.id, text="Hello world")
+    finished = alpaka.finish_message(message=message.id, text="Hello world")
     assert finished.is_streaming is False
 
-    assert get_message(id=message.id).text == "Hello world"
+    assert alpaka.get_message(id=message.id).text == "Hello world"
 
 
 @pytest.mark.integration
-def test_a_subscriber_sees_created_updated_finished(deployed_app: DeployedAlpaka) -> None:
+def test_a_subscriber_sees_created_updated_finished(alpaka: Alpaka) -> None:
     """The three ``MESSAGE_*`` events, in order, with the text accumulating."""
-    room = create_room(title="Watched Room", description="Has a listener.")
+    room = alpaka.create_room(title="Watched Room", description="Has a listener.")
     events: queue.Queue = queue.Queue()
     stop = threading.Event()
 
     def listen() -> None:
         try:
-            for event in watch_room(room=room.id, agent_id="listener"):
+            for event in alpaka.watch_room(room=room.id, agent_id="listener"):
                 events.put(event)
                 if stop.is_set():
                     return
@@ -76,15 +71,15 @@ def test_a_subscriber_sees_created_updated_finished(deployed_app: DeployedAlpaka
     # joining is simply never reported. Wait for that by round-tripping a
     # throwaway message rather than sleeping a hopeful number of seconds.
     for attempt in range(10):
-        warmup = start_message(room=room.id, agent_id="warmup")
+        warmup = alpaka.start_message(room=room.id, agent_id="warmup")
         try:
             first = events.get(timeout=3)
         except queue.Empty:
-            finish_message(message=warmup.id)
+            alpaka.finish_message(message=warmup.id)
             continue
         if isinstance(first, Exception):
             raise AssertionError(f"the subscription failed: {first!r}")
-        finish_message(message=warmup.id)
+        alpaka.finish_message(message=warmup.id)
         break
     else:  # pragma: no cover - the subscription never joined
         raise AssertionError("the subscription never started receiving events")
@@ -97,11 +92,11 @@ def test_a_subscriber_sees_created_updated_finished(deployed_app: DeployedAlpaka
         except queue.Empty:
             break
 
-    message = start_message(room=room.id, agent_id="assistant")
+    message = alpaka.start_message(room=room.id, agent_id="assistant")
     created = events.get(timeout=15)
-    append_message(message=message.id, delta="hi")
+    alpaka.append_message(message=message.id, delta="hi")
     updated = events.get(timeout=15)
-    finish_message(message=message.id, text="hi")
+    alpaka.finish_message(message=message.id, text="hi")
     finished = events.get(timeout=15)
     stop.set()
 

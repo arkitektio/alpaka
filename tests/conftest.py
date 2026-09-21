@@ -73,12 +73,12 @@ def integration_ports() -> Generator[dict[str, int], None, None]:
     an unpublished port reads back as ``None`` and the test URLs would quietly
     become ``http://localhost:None`` instead of failing loudly.
     """
-    alpaka_port, minio_port = _reserve_free_ports(2)
-    env = {"ALPAKA_HOST_PORT": str(alpaka_port), "MINIO_HOST_PORT": str(minio_port)}
+    alpaka_port, rustfs_port = _reserve_free_ports(2)
+    env = {"ALPAKA_HOST_PORT": str(alpaka_port), "RUSTFS_HOST_PORT": str(rustfs_port)}
     previous = {key: os.environ.get(key) for key in env}
     os.environ.update(env)
     try:
-        yield {"alpaka": alpaka_port, "minio": minio_port}
+        yield {"alpaka": alpaka_port, "rustfs": rustfs_port}
     finally:
         for key, value in previous.items():
             if value is None:
@@ -92,13 +92,26 @@ async def token_loader() -> str:
     return "test"
 
 
+class StaticTokens:
+    """A token loader handing out one fixed token, for clients built by hand."""
+
+    def __init__(self, token: str = "test") -> None:
+        self.token = token
+
+    async def aget_token(self) -> str:
+        return self.token
+
+    async def arefresh_token(self, stale_token: str | None = None) -> str:
+        return self.token
+
+
 @dataclass
 class DeployedAlpaka:
     """Deployed Alpaka instance."""
 
     deployment: Deployment
     alpaka_watcher: LogWatcher
-    minio_watcher: LogWatcher
+    rustfs_watcher: LogWatcher
     alpaka: Alpaka
 
 
@@ -119,7 +132,7 @@ def deployed_app(integration_ports: dict[str, int]) -> Generator[DeployedAlpaka,
     )
 
     watcher = setup.create_watcher("alpaka")
-    minio_watcher = setup.create_watcher("minio")
+    rustfs_watcher = setup.create_watcher("rustfs")
 
     with setup:
         setup.down()
@@ -155,6 +168,8 @@ def deployed_app(integration_ports: dict[str, int]) -> Generator[DeployedAlpaka,
 
         alpaka = Alpaka(
             rath=y,
+            llm_url=http_url.rsplit("/graphql", 1)[0] + "/llm/v1",
+            tokens=StaticTokens(),
         )
 
         setup.up()
@@ -167,8 +182,14 @@ def deployed_app(integration_ports: dict[str, int]) -> Generator[DeployedAlpaka,
             deployed = DeployedAlpaka(
                 deployment=setup,
                 alpaka_watcher=watcher,
-                minio_watcher=minio_watcher,
+                rustfs_watcher=rustfs_watcher,
                 alpaka=alpaka,
             )
 
             yield deployed
+
+
+@pytest.fixture(scope="session")
+def alpaka(deployed_app: DeployedAlpaka) -> Alpaka:
+    """The deployment's client: API calls are its methods, nothing is ambient."""
+    return deployed_app.alpaka

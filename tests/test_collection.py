@@ -1,22 +1,21 @@
 import pytest
+
+from alpaka.alpaka import Alpaka
 from alpaka.api.schema import (
-    list_chroma_collections,
-    search_chroma_collection,
     ChromaCollectionFilter,
     ChromaCollectionOrderCreatedAt,
     ChromaCollectionOrderName,
     OffsetPaginationInput,
     Ordering,
 )
-from .conftest import DeployedAlpaka
 
 
 @pytest.mark.integration
 def test_list_chroma_collections_accepts_ordering(
-    deployed_app: DeployedAlpaka,
+    alpaka: Alpaka,
 ) -> None:
     """Listing collections accepts an ordering argument and returns a list."""
-    collections = list_chroma_collections(
+    collections = alpaka.list_chroma_collections(
         order=[ChromaCollectionOrderName(name=Ordering.ASC)],
         pagination=OffsetPaginationInput(limit=100),
     )
@@ -25,10 +24,10 @@ def test_list_chroma_collections_accepts_ordering(
 
 @pytest.mark.integration
 def test_list_chroma_collections_accepts_filter_and_ordering(
-    deployed_app: DeployedAlpaka,
+    alpaka: Alpaka,
 ) -> None:
     """Collections can be filtered and ordered in the same query."""
-    collections = list_chroma_collections(
+    collections = alpaka.list_chroma_collections(
         filter=ChromaCollectionFilter(search="anything"),
         order=[ChromaCollectionOrderCreatedAt(createdAt=Ordering.DESC)],
     )
@@ -37,8 +36,8 @@ def test_list_chroma_collections_accepts_filter_and_ordering(
 
 @pytest.mark.integration
 def test_search_chroma_collection_respects_limit(
-    deployed_app: DeployedAlpaka,
+    alpaka: Alpaka,
 ) -> None:
     """The collection search honours the limit argument."""
-    options = search_chroma_collection(search="anything", limit=2, offset=0)
+    options = alpaka.search_chroma_collection(search="anything", limit=2, offset=0)
     assert len(options) <= 2

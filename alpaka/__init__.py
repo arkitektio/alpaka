@@ -2,36 +2,31 @@ from .alpaka import Alpaka
 from .streaming import RoomStream, stream_into_room
 
 try:
-    from .arkitekt import AlpakaService
-    from .rekuest import structure_reg
-except ImportError:
-    pass
+    from .arkitekt import alpaka as alpaka_service
+except ImportError as e:
+    # Only "rekuest is not installed" may pass silently. Anything else that fails
+    # to import here (a renamed query, a rekuest too old for what the module
+    # needs) is a bug, and hiding it makes this package's service vanish
+    # without a word. Whether it is installed is asked the plain way.
+    try:
+        import rekuest  # noqa: F401 -- presence is the question
+    except ImportError:
+        pass
+    else:
+        raise e
 
 try:
-    # Needs the arkitekt integration (fakts); the openai()/aopenai() factories
-    # additionally need the `alpaka[openai]` extra at call time.
-    from .tunnel import (
-        AlpakaEndpoint,
-        aget_endpoint,
-        alpakaAI,
-        aopenai,
-        get_endpoint,
-        openai,
-    )
+    # The tunnel needs httpx, which arrives with the `alpaka[openai]` extra.
+    from .tunnel import AlpakaEndpoint, build_async_openai, build_openai
 except ImportError:
     pass
-
 
 __all__ = [
     "Alpaka",
     "RoomStream",
     "stream_into_room",
-    "AlpakaService",
-    "structure_reg",
+    "alpaka_service",
     "AlpakaEndpoint",
-    "get_endpoint",
-    "aget_endpoint",
-    "openai",
-    "aopenai",
-    "alpakaAI",
+    "build_openai",
+    "build_async_openai",
 ]

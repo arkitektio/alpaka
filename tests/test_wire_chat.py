@@ -19,10 +19,17 @@ from alpaka.api.schema import (
     Role,
     RoomOrderCreatedAt,
     ThinkingBlockType,
-    achat,
-    alist_rooms,
 )
+from alpaka.alpaka import Alpaka
 from alpaka.rath import AlpakaRath
+
+from .conftest import StaticTokens
+
+
+def client(rath: AlpakaRath) -> Alpaka:
+    """An Alpaka over the given rath, with a static tunnel endpoint."""
+    return Alpaka(rath=rath, llm_url="http://testserver/llm/v1", tokens=StaticTokens())
+
 
 
 def chat_payload(**choice_overrides: Any) -> dict:
@@ -53,12 +60,11 @@ async def test_chat_serializes_camel_case_and_omits_unset() -> None:
         return chat_payload()
 
     async with AlpakaRath(link=AsyncMockLink(mutation_resolver={"chat": resolve_chat})) as rath:
-        await achat(
+        await client(rath).achat(
             messages=[ChatMessageInput(role=Role.USER, content="hi")],
             max_tokens=5,
             top_p=0.9,
             response_format={"type": "json_object"},
-            rath=rath,
         )
 
     sent = captured["input"]
@@ -97,8 +103,8 @@ async def test_chat_response_parses_tools_thinking_and_usage() -> None:
         )
 
     async with AlpakaRath(link=AsyncMockLink(mutation_resolver={"chat": resolve_chat})) as rath:
-        response = await achat(
-            messages=[ChatMessageInput(role=Role.USER, content="hi")], rath=rath
+        response = await client(rath).achat(
+            messages=[ChatMessageInput(role=Role.USER, content="hi")]
         )
 
     assert response.to_string() == "Hello there"
@@ -123,6 +129,6 @@ async def test_oneof_order_variant_serializes_to_single_key() -> None:
         return []
 
     async with AlpakaRath(link=AsyncMockLink(query_resolver={"rooms": resolve_rooms})) as rath:
-        await alist_rooms(order=[RoomOrderCreatedAt(created_at=Ordering.ASC)], rath=rath)
+        await client(rath).alist_rooms(order=[RoomOrderCreatedAt(created_at=Ordering.ASC)])
 
     assert captured["order"] == [{"createdAt": "ASC"}]

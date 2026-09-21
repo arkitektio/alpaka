@@ -1,8 +1,9 @@
 """Integration test: the OpenAI-compatible tunnel on the dokker stack.
 
 Drives the real ``openai`` SDK against the composed alpaka server's
-``/llm/v1`` endpoint with the stack's static token — the exact wiring
-``alpaka.openai()`` brokers in production, minus fakts.
+``/llm/v1`` endpoint with the stack's static token -- the exact wiring the
+client's ``alpaka.openai`` property builds in production (``deployed_app.alpaka.openai``
+is the same, over the fixture's static token loader).
 
 Marked ``xfail(strict=False)``: the pulled ``jhnnsrs/alpaka:next`` image may
 predate the REST auth fix (the missing ``await`` in

@@ -2,17 +2,21 @@
 
 Alpaka's chat surface is deliberately not its own SDK: the server exposes an
 OpenAI-compatible REST API (``/llm/v1/...``) behind arkitekt auth, so people
-use the client they already know and alpaka only brokers the connection —
-resolving the endpoint from fakts and injecting the current auth token.
+use the client they already know and alpaka only brokers the connection --
+the endpoint the service builder resolved, and the current auth token.
 
 Three entry points:
 
-- :func:`get_endpoint` — the base URL and a current token, for any
-  OpenAI-compatible consumer in any language (curl, LangChain, a JS app).
-- :func:`openai` / :func:`aopenai` — a configured ``openai.OpenAI`` /
-  ``openai.AsyncOpenAI`` (requires the ``alpaka[openai]`` extra). Tokens are
-  re-read from fakts on every request, so long-running sessions survive token
-  expiry.
+- ``Alpaka.openai`` / ``Alpaka.aopenai`` -- the client's own ``openai.OpenAI`` /
+  ``openai.AsyncOpenAI``, built once, lazily, from the endpoint and token loader
+  the client was built with (requires the ``alpaka[openai]`` extra). Tokens are
+  re-read on every request, so long-running sessions survive token expiry.
+- ``Alpaka.get_endpoint()`` / ``aget_endpoint()`` -- the base URL and a current
+  token, for any OpenAI-compatible consumer in any language (curl, LangChain, a
+  JS app).
+- :func:`build_openai` / :func:`build_async_openai` -- the same construction
+  with your own SDK options, for when the client's cached one is not what you
+  want.
 
 Model names accept the server's registry forms: ``provider/model-id`` (e.g.
 ``openrouter/gpt-4``), a bare ``model-id``, or ``alpaka/default`` /
@@ -20,27 +24,26 @@ Model names accept the server's registry forms: ``provider/model-id`` (e.g.
 default model.
 """
 
-import warnings
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
+
+from koil import unkoil
 
 try:
     import httpx
 except ImportError:  # openai >= 3 environments may ship only httpx2
     import httpx2 as httpx  # type: ignore[no-redef]
 
-from fakts import get_current_fakts
 
 if TYPE_CHECKING:
+    from fakts import TokenLoader
     from openai import AsyncOpenAI, OpenAI
 
 __all__ = [
     "AlpakaEndpoint",
-    "get_endpoint",
-    "aget_endpoint",
-    "openai",
-    "aopenai",
-    "alpakaAI",
+    "TokenAuth",
+    "build_openai",
+    "build_async_openai",
 ]
 
 
@@ -48,97 +51,97 @@ __all__ = [
 class AlpakaEndpoint:
     """An OpenAI-compatible endpoint on the alpaka server.
 
-    ``api_key`` is the fakts token as of the moment this was created; it
-    expires. For anything long-running prefer :func:`openai` / :func:`aopenai`,
-    which refresh the token per request.
+    ``api_key`` is the token as of the moment this was created; it expires. For
+    anything long-running prefer the client's ``openai`` / ``aopenai``, which
+    refresh the token per request.
     """
 
     base_url: str
     api_key: str
 
 
-def get_endpoint() -> AlpakaEndpoint:
-    """Resolve the alpaka OpenAI-compatible endpoint from the current fakts
-    context (requires an active arkitekt/fakts session, e.g. ``with easy():``)."""
-    fakts = get_current_fakts()
-    return AlpakaEndpoint(
-        base_url=fakts.get_alias("alpaka").to_http_path("/llm/v1"),
-        api_key=fakts.get_token(),
-    )
+class TokenAuth(httpx.Auth):
+    """Per-request bearer auth that re-reads the token, so an SDK client built
+    once keeps working after the token it was created with expires."""
 
-
-async def aget_endpoint() -> AlpakaEndpoint:
-    """Async twin of :func:`get_endpoint`, for callers inside an event loop."""
-    fakts = get_current_fakts()
-    alias = await fakts.aget_alias("alpaka")
-    return AlpakaEndpoint(
-        base_url=alias.to_http_path("/llm/v1"),
-        api_key=await fakts.aget_token(),
-    )
-
-
-class _FaktsBearerAuth(httpx.Auth):
-    """Per-request bearer auth that re-reads the fakts token, so an SDK client
-    built once keeps working after the token it was created with expires."""
+    def __init__(self, tokens: "TokenLoader") -> None:
+        self.tokens = tokens
 
     def sync_auth_flow(self, request: httpx.Request):
-        request.headers["Authorization"] = f"Bearer {get_current_fakts().get_token()}"
+        request.headers["Authorization"] = f"Bearer {unkoil(self.tokens.aget_token)}"
         yield request
 
     async def async_auth_flow(self, request: httpx.Request):
-        token = await get_current_fakts().aget_token()
+        token = await self.tokens.aget_token()
         request.headers["Authorization"] = f"Bearer {token}"
         yield request
 
 
-def openai(**kwargs: Any) -> "OpenAI":
+#: The SDK refuses to construct without an api_key; the real credential is
+#: injected per request by :class:`TokenAuth`.
+PLACEHOLDER_API_KEY = "managed-by-alpaka"
+
+
+def _refuse_http_client(kwargs: dict[str, Any]) -> None:
+    if "http_client" in kwargs:
+        raise TypeError(
+            "build_openai builds the http client itself, so the bearer auth is "
+            "never lost. Pass `transport=` to route its requests, or build the "
+            "SDK client yourself with TokenAuth(tokens)."
+        )
+
+
+def build_openai(
+    base_url: str,
+    tokens: "TokenLoader",
+    *,
+    transport: "httpx.BaseTransport | None" = None,
+    **kwargs: Any,
+) -> "OpenAI":
     """A native ``openai.OpenAI`` client tunneled through alpaka.
 
-    Extra ``kwargs`` are forwarded to the SDK constructor. Requires the
-    ``alpaka[openai]`` extra.
+    Args:
+        base_url: The OpenAI-compatible endpoint, ``<alpaka>/llm/v1``.
+        tokens: Where the bearer token comes from, re-read on every request.
+        transport: An ``httpx`` transport to route requests through (a
+            ``MockTransport`` in tests). The http client itself is always built
+            here, with the bearer auth.
+        **kwargs: Forwarded to the SDK constructor (``max_retries=``, ...).
+
+    Returns:
+        The client. Requires the ``alpaka[openai]`` extra.
+
+    Raises:
+        TypeError: If ``http_client`` is passed; it would drop the bearer auth.
     """
     from openai import OpenAI
 
-    fakts = get_current_fakts()
-    kwargs.setdefault(
-        "http_client", httpx.Client(auth=_FaktsBearerAuth(), timeout=httpx.Timeout(600.0))
+    _refuse_http_client(kwargs)
+    http_client = httpx.Client(
+        auth=TokenAuth(tokens), timeout=httpx.Timeout(600.0), transport=transport
     )
     return OpenAI(
-        base_url=fakts.get_alias("alpaka").to_http_path("/llm/v1"),
-        # The real credential is injected per request by _FaktsBearerAuth;
-        # the SDK just refuses to construct without an api_key.
-        api_key="managed-by-alpaka",
-        **kwargs,
+        base_url=base_url, api_key=PLACEHOLDER_API_KEY, http_client=http_client, **kwargs
     )
 
 
-async def aopenai(**kwargs: Any) -> "AsyncOpenAI":
+def build_async_openai(
+    base_url: str,
+    tokens: "TokenLoader",
+    *,
+    transport: "httpx.AsyncBaseTransport | None" = None,
+    **kwargs: Any,
+) -> "AsyncOpenAI":
     """A native ``openai.AsyncOpenAI`` client tunneled through alpaka.
 
-    Async (``await alpaka.aopenai()``) because resolving the alias from
-    inside a running event loop must not cross the sync koil bridge — the
-    sync :func:`openai` is for synchronous call sites. Extra ``kwargs`` are
-    forwarded to the SDK constructor. Requires the ``alpaka[openai]`` extra.
+    See :func:`build_openai`; the transport is an async one.
     """
     from openai import AsyncOpenAI
 
-    fakts = get_current_fakts()
-    alias = await fakts.aget_alias("alpaka")
-    kwargs.setdefault(
-        "http_client", httpx.AsyncClient(auth=_FaktsBearerAuth(), timeout=httpx.Timeout(600.0))
+    _refuse_http_client(kwargs)
+    http_client = httpx.AsyncClient(
+        auth=TokenAuth(tokens), timeout=httpx.Timeout(600.0), transport=transport
     )
     return AsyncOpenAI(
-        base_url=alias.to_http_path("/llm/v1"),
-        api_key="managed-by-alpaka",
-        **kwargs,
+        base_url=base_url, api_key=PLACEHOLDER_API_KEY, http_client=http_client, **kwargs
     )
-
-
-def alpakaAI() -> "OpenAI":
-    """Deprecated alias for :func:`openai`."""
-    warnings.warn(
-        "alpakaAI() is deprecated; use alpaka.openai() (or alpaka.aopenai()) instead.",
-        DeprecationWarning,
-        stacklevel=2,
-    )
-    return openai()

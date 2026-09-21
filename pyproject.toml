@@ -15,7 +15,7 @@ dependencies = [
 [project.optional-dependencies]
 # The tunnel (alpaka.openai()/aopenai()/get_endpoint()): native openai SDK
 # pointed at the server's OpenAI-compatible endpoint, resolved via fakts.
-# The arkitekt integration (alpaka.arkitekt / alpaka.rekuest) has no extra of
+# The arkitekt integration (alpaka.arkitekt) has no extra of
 # its own: arkitekt depends on alpaka and brings fakts/rekuest itself —
 # the guarded imports in __init__ light up when it is installed alongside.
 openai = ["openai>=1.30", "httpx>=0.27", "fakts>=2"]

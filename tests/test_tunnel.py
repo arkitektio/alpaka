@@ -1,17 +1,12 @@
-"""Unit tests for the SDK tunnel (``alpaka.tunnel``).
+"""Unit tests for the SDK tunnel: the client owns its endpoint and its ``openai``.
 
-No docker, no monkeypatching: a real ``fakts.testing.TestingFakts`` is
-entered as a context manager, which publishes it on the genuine
-``current_fakts`` contextvar — exactly how production code finds fakts —
-and HTTP goes through ``httpx.MockTransport``. Because TestingFakts runs the
-real token machinery (locks, expiry, refresh), the rotation tests prove the
-true expiry→refetch path, not a fake counter.
+No docker, no monkeypatching: a real ``fakts.testing.TestingFakts`` stands in
+as the client's token loader, as the runtime's fakts does, and HTTP goes
+through ``httpx.MockTransport``. Because TestingFakts runs the real token
+machinery (locks, expiry, refresh), the rotation tests prove the true
+expiry->refetch path, not a fake counter.
 
-Token accounting note: resolving an alias spends one token fetch (fakts takes
-the report token up front — real behavior), so the first token a request sees
-is the *second* one in the configured sequence.
-
-Needs the ``openai`` extra (openai + fakts-next); skipped where absent.
+Needs the ``openai`` extra (openai + fakts); skipped where absent.
 """
 
 import httpx
@@ -20,12 +15,14 @@ import pytest
 pytest.importorskip("openai")
 fakts = pytest.importorskip("fakts")
 if not hasattr(fakts, "build_testing_fakts"):  # pragma: no cover
-    pytest.skip("installed fakts-next predates TestingFakts", allow_module_level=True)
+    pytest.skip("installed fakts predates TestingFakts", allow_module_level=True)
 
 from fakts.testing import build_testing_fakts  # noqa: E402
 
-import alpaka.tunnel as tunnel  # noqa: E402
+from alpaka.alpaka import Alpaka  # noqa: E402
+from alpaka.tunnel import PLACEHOLDER_API_KEY, build_async_openai, build_openai  # noqa: E402
 
+LLM_URL = "http://testserver/llm/v1"
 
 CANNED_COMPLETION = {
     "id": "chatcmpl-1",
@@ -45,54 +42,48 @@ CANNED_COMPLETION = {
 TOKEN_SEQUENCE = [f"tok-{i}" for i in range(1, 6)]
 
 
-@pytest.fixture
-def fakts():
-    """A hot-plugged fakts with a static, never-expiring token."""
-    with build_testing_fakts(
-        aliases={"alpaka": "http://testserver"}, token="static-token"
-    ) as f:
-        yield f
+def client_with(tokens: object) -> Alpaka:
+    """An Alpaka as the service builds it, minus the rath: endpoint and tokens."""
+    return Alpaka.model_construct(rath=None, task_token=None, llm_url=LLM_URL, tokens=tokens)
 
 
 @pytest.fixture
-def rotating_fakts():
-    """A hot-plugged fakts whose token expires immediately, so every
-    ``get_token`` call renews — the long-running-session shape."""
-    with build_testing_fakts(
-        aliases={"alpaka": "http://testserver"},
-        tokens=TOKEN_SEQUENCE,
-        token_lifetime=0,
-    ) as f:
+def tokens():
+    """A hot-plugged fakts with a static, never-expiring token, as the token loader."""
+    with build_testing_fakts(aliases={"alpaka": "http://testserver"}, token="static-token") as f:
         yield f
 
 
-def test_get_endpoint_resolves_base_url_and_current_token(fakts):
-    endpoint = tunnel.get_endpoint()
-    assert endpoint.base_url == "http://testserver/llm/v1"
+def test_get_endpoint_is_the_clients_url_and_current_token(tokens):
+    endpoint = client_with(tokens).get_endpoint()
+    assert endpoint.base_url == LLM_URL
     assert endpoint.api_key == "static-token"
 
 
-async def test_aget_endpoint_resolves_inside_a_running_loop():
+async def test_aget_endpoint_inside_a_running_loop():
     async with build_testing_fakts(
         aliases={"alpaka": "http://testserver"}, token="static-token"
-    ):
-        endpoint = await tunnel.aget_endpoint()
-    assert endpoint.base_url == "http://testserver/llm/v1"
+    ) as tokens:
+        endpoint = await client_with(tokens).aget_endpoint()
+    assert endpoint.base_url == LLM_URL
     assert endpoint.api_key == "static-token"
 
 
-def test_openai_client_points_at_tunnel(fakts):
-    """The factory resolves the alias (which spends fakts' report-token
-    fetch) but hands the SDK no real credential — auth is per request."""
-    client = tunnel.openai()
-    assert str(client.base_url).rstrip("/") == "http://testserver/llm/v1"
-    assert client.api_key == "managed-by-alpaka"
-    assert fakts.token_fetches == 1  # alias resolution only
+def test_openai_is_built_once_lazily_and_points_at_the_tunnel(tokens):
+    """No credential is handed to the SDK -- auth is per request -- and nothing
+    is fetched until a request is made."""
+    client = client_with(tokens)
+    sdk = client.openai
+    assert str(sdk.base_url).rstrip("/") == LLM_URL
+    assert sdk.api_key == PLACEHOLDER_API_KEY
+    assert tokens.token_fetches == 0
+    assert client.openai is sdk
+    assert client.aopenai is client.aopenai
 
 
-def test_sync_requests_refresh_token_each_time(rotating_fakts):
-    """Every request re-reads the fakts token through the real expiry
-    machinery, so a client built before a token expired keeps working."""
+def test_sync_requests_refresh_token_each_time():
+    """Every request re-reads the token through the real expiry machinery, so a
+    client built before a token expired keeps working."""
     seen_auth: list[str] = []
     seen_urls: list[str] = []
 
@@ -101,20 +92,18 @@ def test_sync_requests_refresh_token_each_time(rotating_fakts):
         seen_urls.append(str(request.url))
         return httpx.Response(200, json=CANNED_COMPLETION)
 
-    client = tunnel.openai(
-        http_client=httpx.Client(
-            transport=httpx.MockTransport(handler), auth=tunnel._FaktsBearerAuth()
-        )
-    )
-    messages = [{"role": "user", "content": "hi"}]
-    first = client.chat.completions.create(model="alpaka/default", messages=messages)
-    second = client.chat.completions.create(model="alpaka/default", messages=messages)
+    with build_testing_fakts(
+        aliases={"alpaka": "http://testserver"}, tokens=TOKEN_SEQUENCE, token_lifetime=0
+    ) as tokens:
+        sdk = build_openai(LLM_URL, tokens, transport=httpx.MockTransport(handler))
+        messages = [{"role": "user", "content": "hi"}]
+        first = sdk.chat.completions.create(model="alpaka/default", messages=messages)
+        second = sdk.chat.completions.create(model="alpaka/default", messages=messages)
 
     assert first.choices[0].message.content == "hello"
     assert second.choices[0].message.content == "hello"
-    # tok-1 went to alias resolution at construction; each request renews.
-    assert seen_auth == ["Bearer tok-2", "Bearer tok-3"]
-    assert seen_urls == ["http://testserver/llm/v1/chat/completions"] * 2
+    assert seen_auth == ["Bearer tok-1", "Bearer tok-2"]
+    assert seen_urls == [f"{LLM_URL}/chat/completions"] * 2
 
 
 async def test_async_requests_refresh_token_each_time():
@@ -125,28 +114,30 @@ async def test_async_requests_refresh_token_each_time():
         return httpx.Response(200, json=CANNED_COMPLETION)
 
     async with build_testing_fakts(
-        aliases={"alpaka": "http://testserver"},
-        tokens=TOKEN_SEQUENCE,
-        token_lifetime=0,
-    ):
-        client = await tunnel.aopenai(
-            http_client=httpx.AsyncClient(
-                transport=httpx.MockTransport(handler), auth=tunnel._FaktsBearerAuth()
-            )
-        )
+        aliases={"alpaka": "http://testserver"}, tokens=TOKEN_SEQUENCE, token_lifetime=0
+    ) as tokens:
+        sdk = build_async_openai(LLM_URL, tokens, transport=httpx.MockTransport(handler))
         messages = [{"role": "user", "content": "hi"}]
-        await client.chat.completions.create(model="alpaka/default", messages=messages)
-        await client.chat.completions.create(model="alpaka/default", messages=messages)
+        await sdk.chat.completions.create(model="alpaka/default", messages=messages)
+        await sdk.chat.completions.create(model="alpaka/default", messages=messages)
 
-    assert seen_auth == ["Bearer tok-2", "Bearer tok-3"]
-
-
-def test_constructor_kwargs_forwarded(fakts):
-    client = tunnel.openai(max_retries=7)
-    assert client.max_retries == 7
+    assert seen_auth == ["Bearer tok-1", "Bearer tok-2"]
 
 
-def test_alpaka_ai_is_deprecated_alias(fakts):
-    with pytest.deprecated_call():
-        client = tunnel.alpakaAI()
-    assert str(client.base_url).rstrip("/") == "http://testserver/llm/v1"
+def test_constructor_kwargs_forwarded(tokens):
+    assert build_openai(LLM_URL, tokens, max_retries=7).max_retries == 7
+
+
+def test_a_foreign_http_client_is_refused(tokens):
+    """Passing one would silently drop the bearer auth; the transport is the seam."""
+    with pytest.raises(TypeError, match="transport="):
+        build_openai(LLM_URL, tokens, http_client=httpx.Client())
+
+
+def test_a_task_view_shares_the_tunnel(tokens):
+    """Inside an action the injected client is a per-task view: same endpoint, same SDK."""
+    client = client_with(tokens)
+    sdk = client.openai
+    view = client.for_task(type("T", (), {"token": "t"})())
+    assert view.openai is sdk
+    assert view.get_endpoint().api_key == "static-token"

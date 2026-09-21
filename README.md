@@ -17,10 +17,10 @@ and hands you the client you already know.
 
 ```python
 import alpaka
-from arkitekt import easy
+from arkitekt import App, connect
 
-with easy():
-    client = alpaka.openai()  # a real openai.OpenAI, pointed at your alpaka server
+with connect(App("chat", services=[alpaka.alpaka_service])) as rt:
+    client = rt.require(alpaka.Alpaka).openai  # a real openai.OpenAI, pointed at your alpaka server
 
     response = client.chat.completions.create(
         model="alpaka/default",  # or "openrouter/gpt-4", "ollama/llama3", a registry id...
@@ -31,17 +31,18 @@ with easy():
         print(chunk.choices[0].delta.content or "", end="")
 ```
 
-Requires the `openai` extra: `pip install alpaka[openai]`. There is an async
-twin — `client = await alpaka.aopenai()` (async because alias resolution
-inside a running event loop must not cross the sync koil bridge), plus
-`await alpaka.aget_endpoint()`. Auth tokens are re-read from fakts on every
-request, so long-running sessions survive token expiry.
+Requires the `openai` extra: `pip install alpaka[openai]`. The client builds the
+SDK client once, on first use, from the endpoint and token loader its service
+gave it; `alpaka_client.aopenai` is the `openai.AsyncOpenAI` twin. Auth tokens
+are re-read on every request, so long-running sessions survive token expiry.
+For SDK options of your own, `alpaka.build_openai(alpaka_client.llm_url,
+alpaka_client.tokens, max_retries=7)` builds a fresh one the same way.
 
 Anything else that speaks the OpenAI wire format — LangChain, curl, a JS app —
 can tunnel too:
 
 ```python
-endpoint = alpaka.get_endpoint()
+endpoint = rt.require(alpaka.Alpaka).get_endpoint()
 print(endpoint.base_url)  # .../llm/v1
 print(endpoint.api_key)   # your current arkitekt token (expires!)
 ```
@@ -58,17 +59,19 @@ it grow.
 
 ```python
 import alpaka
-from arkitekt import easy
+from arkitekt import App, connect
 
-async with easy():
-    client = await alpaka.aopenai()
+async with connect(App("chat", services=[alpaka.alpaka_service])) as rt:
+    alpaka_client = rt.require(alpaka.Alpaka)
+    client = alpaka_client.aopenai
     completion = await client.chat.completions.create(
         model="alpaka/default",
         messages=[{"role": "user", "content": "Hello!"}],
         stream=True,
     )
 
-    async with alpaka.stream_into_room(room=room.id, agent_id="assistant") as reply:
+    # The alpaka client to write through is passed in: nothing is looked up.
+    async with alpaka.stream_into_room(alpaka_client, room=room.id, agent_id="assistant") as reply:
         async for chunk in completion:
             await reply.append(chunk.choices[0].delta.content or "")
 ```
@@ -77,12 +80,13 @@ async with easy():
 ~150 ms, so you do not pay a mutation per token), sends them in order, and always
 finishes the message on the way out — with the full accumulated text, so a delta
 lost on the way is repaired, and a raising body cannot leave a message
-`isStreaming` forever. Watch a room with `watch_room` / `awatch_room`: every
+`isStreaming` forever. Watch a room with `service.watch_room` / `service.awatch_room`: every
 event carries a `kind` (`MESSAGE_CREATED`, `MESSAGE_UPDATED`, `MESSAGE_FINISHED`,
 `JOIN`, `LEAVE`). A subscription only sees what happens after it joins.
 
-The underlying mutations (`start_message` / `append_message` / `finish_message`)
-are there if you want to drive it yourself; the server also has a
+The underlying mutations (`service.start_message` / `append_message` /
+`finish_message`, like every generated operation a method of the `Alpaka`
+client) are there if you want to drive it yourself; the server also has a
 one-frame-per-token websocket at `/kammer/stream/` for clients that need it.
 
 ## Testing
@@ -111,7 +115,9 @@ it up when it exists, and CI keeps testing the published image.
 
 ## GraphQL client
 
-The generated GraphQL client (`alpaka.api.schema`) covers the registry and
+The generated GraphQL client (every operation in `alpaka.api.schema` is a
+method of `AlpakaApi`, which the `Alpaka` client mixes in: `service.aget_room(id)`)
+covers the registry and
 collaboration surface: listing and searching `LLMModel`s and providers, rooms
 and messages (including the streaming mutations above), and the ChromaDB
 vector-collection RAG API. The `chat` mutation

@@ -1,20 +1,19 @@
 import pytest
+
+from alpaka.alpaka import Alpaka
 from alpaka.api.schema import (
-    list_ll_models,
-    search_llm_models,
     LLMModelFilter,
     LLMModelOrderLabel,
     LLMModelOrderModelId,
     OffsetPaginationInput,
     Ordering,
 )
-from .conftest import DeployedAlpaka
 
 
 @pytest.mark.integration
-def test_list_ll_models_accepts_ordering(deployed_app: DeployedAlpaka) -> None:
+def test_list_ll_models_accepts_ordering(alpaka: Alpaka) -> None:
     """Listing models accepts an ordering argument and returns a list."""
-    models = list_ll_models(
+    models = alpaka.list_ll_models(
         order=[LLMModelOrderLabel(label=Ordering.ASC)],
         pagination=OffsetPaginationInput(limit=100),
     )
@@ -23,10 +22,10 @@ def test_list_ll_models_accepts_ordering(deployed_app: DeployedAlpaka) -> None:
 
 @pytest.mark.integration
 def test_list_ll_models_accepts_filter_and_ordering(
-    deployed_app: DeployedAlpaka,
+    alpaka: Alpaka,
 ) -> None:
     """Models can be filtered and ordered in the same query."""
-    models = list_ll_models(
+    models = alpaka.list_ll_models(
         filter=LLMModelFilter(search="anything"),
         order=[LLMModelOrderModelId(modelId=Ordering.DESC)],
     )
@@ -34,7 +33,7 @@ def test_list_ll_models_accepts_filter_and_ordering(
 
 
 @pytest.mark.integration
-def test_search_llm_models_respects_limit(deployed_app: DeployedAlpaka) -> None:
+def test_search_llm_models_respects_limit(alpaka: Alpaka) -> None:
     """The model search honours the limit argument."""
-    options = search_llm_models(search="anything", limit=2, offset=0)
+    options = alpaka.search_llm_models(search="anything", limit=2, offset=0)
     assert len(options) <= 2
