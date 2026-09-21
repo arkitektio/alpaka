@@ -187,3 +187,33 @@ async def test_a_task_view_stamps_its_token() -> None:
 
     assert base.rath.headers == [None, {TASK_HEADER: "tok"}]
     assert base.task_token is None and view.rath is base.rath
+
+
+@pytest.mark.asyncio
+async def test_the_ambient_task_is_stamped_without_a_view() -> None:
+    """One shared client attributes each call to whatever task is running."""
+    from types import SimpleNamespace
+
+    from rath.task import task_scope
+
+    base = Alpaka.model_construct(rath=FakeRath(), task_token=None)
+
+    await base.aexecute(GetRoom, {"id": "r"})
+    with task_scope(SimpleNamespace(token="tok")):
+        await base.aexecute(GetRoom, {"id": "r"})
+
+    assert base.rath.headers == [None, {TASK_HEADER: "tok"}]
+    assert base.task_token is None, "the shared client is never changed"
+
+
+@pytest.mark.asyncio
+async def test_a_task_named_at_the_call_beats_the_ambient_one() -> None:
+    from types import SimpleNamespace
+
+    from rath.task import task_scope
+
+    base = Alpaka.model_construct(rath=FakeRath(), task_token=None)
+    with task_scope(SimpleNamespace(token="ambient")):
+        await base.aexecute(GetRoom, {"id": "r"}, task=SimpleNamespace(token="explicit"))
+
+    assert base.rath.headers == [{TASK_HEADER: "explicit"}]

@@ -9,6 +9,7 @@ from koil import unkoil, unkoil_gen
 from koil.composition import Composition
 from pydantic import Field, PrivateAttr
 from rath.origin import origin_context
+from rath.task import TASK_HEADER, TaskLike, current_task, token_of
 from rath.turms.funcs import TOperation
 
 from alpaka.api.schema import AlpakaApi
@@ -21,8 +22,6 @@ if TYPE_CHECKING:
 
     from alpaka.tunnel import AlpakaEndpoint
 
-TASK_HEADER = "Rekuest-Task"
-"""The header a per-task client view stamps its provenance token under."""
 
 
 class Alpaka(Composition, AlpakaApi):
@@ -121,41 +120,71 @@ class Alpaka(Composition, AlpakaApi):
         # an optional left out stays off the wire rather than being sent as null.
         return operation.Arguments(**variables).model_dump(by_alias=True, exclude_unset=True)
 
-    def _headers(self) -> dict[str, Any] | None:
-        """The per-call headers: the task's provenance token, on a per-task view."""
-        return {TASK_HEADER: self.task_token} if self.task_token else None
+    def _headers(self, task: "TaskLike | None" = None) -> dict[str, Any] | None:
+        """The per-call headers: the provenance token of the task this call is for.
 
-    def execute(self, operation: type[TOperation], variables: dict[str, Any]) -> TOperation:
+        ``task`` when the caller named one, else whichever task is running. A
+        per-task view of this client (``for_task``) still wins while it exists --
+        it is on its way out, and until then it is the more specific answer.
+        """
+        token = self.task_token if self.task_token else token_of(task)
+        return {TASK_HEADER: token} if token else None
+
+    def execute(
+        self,
+        operation: type[TOperation],
+        variables: dict[str, Any],
+        task: "TaskLike | None" = None,
+    ) -> TOperation:
         """Executes a query or mutation in a blocking way."""
-        return unkoil(self.aexecute, operation, variables)
+        return unkoil(
+            self.aexecute,
+            operation,
+            variables,
+            task=task if task is not None else current_task.get(),
+        )
 
     async def aexecute(
-        self, operation: type[TOperation], variables: dict[str, Any]
+        self,
+        operation: type[TOperation],
+        variables: dict[str, Any],
+        task: "TaskLike | None" = None,
     ) -> TOperation:
         """Executes a query or mutation in a non-blocking way."""
         x = await self.rath.aquery(
             operation.Meta.document,
             self._serialize(operation, variables),
-            headers=self._headers(),
+            headers=self._headers(task),
         )
         return operation.model_validate(
             x.data, context=origin_context(client=self, rath=self.rath)
         )
 
     def subscribe(
-        self, operation: type[TOperation], variables: dict[str, Any]
+        self,
+        operation: type[TOperation],
+        variables: dict[str, Any],
+        task: "TaskLike | None" = None,
     ) -> Generator[TOperation, None, None]:
         """Subscribes to an operation in a blocking way."""
-        return unkoil_gen(self.asubscribe, operation, variables)
+        return unkoil_gen(
+            self.asubscribe,
+            operation,
+            variables,
+            task=task if task is not None else current_task.get(),
+        )
 
     async def asubscribe(
-        self, operation: type[TOperation], variables: dict[str, Any]
+        self,
+        operation: type[TOperation],
+        variables: dict[str, Any],
+        task: "TaskLike | None" = None,
     ) -> AsyncGenerator[TOperation, None]:
         """Subscribes to an operation in a non-blocking way."""
         async for event in self.rath.asubscribe(
             operation.Meta.document,
             self._serialize(operation, variables),
-            headers=self._headers(),
+            headers=self._headers(task),
         ):
             yield operation.model_validate(
                 event.data, context=origin_context(client=self, rath=self.rath)
