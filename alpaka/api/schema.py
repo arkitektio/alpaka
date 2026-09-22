@@ -1,3 +1,4 @@
+import builtins
 from alpaka.traits import ChatResponseTraits
 from datetime import datetime
 from enum import Enum
@@ -1042,8 +1043,8 @@ Args:
 Returns:
     ChatResponse
 """
-        variables: dict[str, Any] = {}
-        _input: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
+        _input: dict[str, builtins.object] = {}
         _input['messages'] = messages
         if model is not UNSET:
             _input['model'] = model
@@ -1093,8 +1094,8 @@ Args:
 Returns:
     ChatResponse
 """
-        variables: dict[str, Any] = {}
-        _input: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
+        _input: dict[str, builtins.object] = {}
         _input['messages'] = messages
         if model is not UNSET:
             _input['model'] = model
@@ -1135,8 +1136,8 @@ Args:
 Returns:
     ChromaCollection
 """
-        variables: dict[str, Any] = {}
-        _input: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
+        _input: dict[str, builtins.object] = {}
         _input['name'] = name
         _input['embedder'] = embedder
         if description is not UNSET:
@@ -1158,8 +1159,8 @@ Args:
 Returns:
     ChromaCollection
 """
-        variables: dict[str, Any] = {}
-        _input: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
+        _input: dict[str, builtins.object] = {}
         _input['name'] = name
         _input['embedder'] = embedder
         if description is not UNSET:
@@ -1181,8 +1182,8 @@ Args:
 Returns:
     ChromaCollection
 """
-        variables: dict[str, Any] = {}
-        _input: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
+        _input: dict[str, builtins.object] = {}
         _input['name'] = name
         _input['embedder'] = embedder
         if description is not UNSET:
@@ -1204,8 +1205,8 @@ Args:
 Returns:
     ChromaCollection
 """
-        variables: dict[str, Any] = {}
-        _input: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
+        _input: dict[str, builtins.object] = {}
         _input['name'] = name
         _input['embedder'] = embedder
         if description is not UNSET:
@@ -1226,8 +1227,8 @@ Args:
 Returns:
     list[Document]
 """
-        variables: dict[str, Any] = {}
-        _input: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
+        _input: dict[str, builtins.object] = {}
         _input['collection'] = collection
         _input['documents'] = documents
         variables['input'] = _input
@@ -1246,8 +1247,8 @@ Args:
 Returns:
     list[Document]
 """
-        variables: dict[str, Any] = {}
-        _input: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
+        _input: dict[str, builtins.object] = {}
         _input['collection'] = collection
         _input['documents'] = documents
         variables['input'] = _input
@@ -1266,8 +1267,8 @@ Args:
 Returns:
     GenerateImageMutationGenerateImage
 """
-        variables: dict[str, Any] = {}
-        _input: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
+        _input: dict[str, builtins.object] = {}
         if model is not UNSET:
             _input['model'] = model
         _input['description'] = description
@@ -1287,8 +1288,8 @@ Args:
 Returns:
     GenerateImageMutationGenerateImage
 """
-        variables: dict[str, Any] = {}
-        _input: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
+        _input: dict[str, builtins.object] = {}
         if model is not UNSET:
             _input['model'] = model
         _input['description'] = description
@@ -1310,7 +1311,7 @@ Args:
 Returns:
     Message
 """
-        variables: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
         variables['text'] = text
         variables['room'] = room
         variables['agentId'] = agent_id
@@ -1333,7 +1334,7 @@ Args:
 Returns:
     Message
 """
-        variables: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
         variables['text'] = text
         variables['room'] = room
         variables['agentId'] = agent_id
@@ -1358,8 +1359,8 @@ Args:
 Returns:
     Provider
 """
-        variables: dict[str, Any] = {}
-        _input: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
+        _input: dict[str, builtins.object] = {}
         if description is not UNSET:
             _input['description'] = description
         if name is not UNSET:
@@ -1391,8 +1392,8 @@ Args:
 Returns:
     Provider
 """
-        variables: dict[str, Any] = {}
-        _input: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
+        _input: dict[str, builtins.object] = {}
         if description is not UNSET:
             _input['description'] = description
         if name is not UNSET:
@@ -1420,8 +1421,8 @@ Args:
 Returns:
     PullMutationPull
 """
-        variables: dict[str, Any] = {}
-        _input: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
+        _input: dict[str, builtins.object] = {}
         _input['modelName'] = model_name
         if provider is not UNSET:
             _input['provider'] = provider
@@ -1441,8 +1442,8 @@ Args:
 Returns:
     PullMutationPull
 """
-        variables: dict[str, Any] = {}
-        _input: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
+        _input: dict[str, builtins.object] = {}
         _input['modelName'] = model_name
         if provider is not UNSET:
             _input['provider'] = provider
@@ -1462,7 +1463,7 @@ Args:
 Returns:
     Room
 """
-        variables: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
         if title is not UNSET:
             variables['title'] = title
         if description is not UNSET:
@@ -1482,7 +1483,7 @@ Args:
 Returns:
     Room
 """
-        variables: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
         if title is not UNSET:
             variables['title'] = title
         if description is not UNSET:
@@ -1504,7 +1505,7 @@ Args:
 Returns:
     ListMessage
 """
-        variables: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
         variables['room'] = room
         variables['agentId'] = agent_id
         if parent is not UNSET:
@@ -1528,7 +1529,7 @@ Args:
 Returns:
     ListMessage
 """
-        variables: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
         variables['room'] = room
         variables['agentId'] = agent_id
         if parent is not UNSET:
@@ -1550,7 +1551,7 @@ Args:
 Returns:
     ListMessage
 """
-        variables: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
         variables['message'] = message
         variables['delta'] = delta
         return (await self.aexecute(AppendMessageMutation, variables, task=task)).append_message
@@ -1568,7 +1569,7 @@ Args:
 Returns:
     ListMessage
 """
-        variables: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
         variables['message'] = message
         variables['delta'] = delta
         return self.execute(AppendMessageMutation, variables, task=task).append_message
@@ -1587,7 +1588,7 @@ Args:
 Returns:
     ListMessage
 """
-        variables: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
         variables['message'] = message
         if text is not UNSET:
             variables['text'] = text
@@ -1609,7 +1610,7 @@ Args:
 Returns:
     ListMessage
 """
-        variables: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
         variables['message'] = message
         if text is not UNSET:
             variables['text'] = text
@@ -1629,7 +1630,7 @@ Args:
 Returns:
     ChromaCollection
 """
-        variables: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
         variables['id'] = id
         return (await self.aexecute(GetChromaCollectionQuery, variables, task=task)).chroma_collection
 
@@ -1645,7 +1646,7 @@ Args:
 Returns:
     ChromaCollection
 """
-        variables: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
         variables['id'] = id
         return self.execute(GetChromaCollectionQuery, variables, task=task).chroma_collection
 
@@ -1664,7 +1665,7 @@ Args:
 Returns:
     list[SearchChromaCollectionQueryChromaCollections]
 """
-        variables: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
         if search is not UNSET:
             variables['search'] = search
         if values is not UNSET:
@@ -1690,7 +1691,7 @@ Args:
 Returns:
     list[SearchChromaCollectionQueryChromaCollections]
 """
-        variables: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
         if search is not UNSET:
             variables['search'] = search
         if values is not UNSET:
@@ -1715,7 +1716,7 @@ Args:
 Returns:
     list[ChromaCollection]
 """
-        variables: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
         if filter is not UNSET:
             variables['filter'] = filter
         if order is not UNSET:
@@ -1738,7 +1739,7 @@ Args:
 Returns:
     list[ChromaCollection]
 """
-        variables: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
         if filter is not UNSET:
             variables['filter'] = filter
         if order is not UNSET:
@@ -1762,8 +1763,8 @@ Args:
 Returns:
     list[Document]
 """
-        variables: dict[str, Any] = {}
-        _input: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
+        _input: dict[str, builtins.object] = {}
         _input['collection'] = collection
         _input['queryTexts'] = query_texts
         _input['nResults'] = n_results
@@ -1787,8 +1788,8 @@ Args:
 Returns:
     list[Document]
 """
-        variables: dict[str, Any] = {}
-        _input: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
+        _input: dict[str, builtins.object] = {}
         _input['collection'] = collection
         _input['queryTexts'] = query_texts
         _input['nResults'] = n_results
@@ -1809,7 +1810,7 @@ Args:
 Returns:
     LLMModel
 """
-        variables: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
         variables['id'] = id
         return (await self.aexecute(GetLLMModelQuery, variables, task=task)).llm_model
 
@@ -1825,7 +1826,7 @@ Args:
 Returns:
     LLMModel
 """
-        variables: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
         variables['id'] = id
         return self.execute(GetLLMModelQuery, variables, task=task).llm_model
 
@@ -1844,7 +1845,7 @@ Args:
 Returns:
     list[SearchLLMModelsQueryLlmModels]
 """
-        variables: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
         if search is not UNSET:
             variables['search'] = search
         if values is not UNSET:
@@ -1870,7 +1871,7 @@ Args:
 Returns:
     list[SearchLLMModelsQueryLlmModels]
 """
-        variables: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
         if search is not UNSET:
             variables['search'] = search
         if values is not UNSET:
@@ -1895,7 +1896,7 @@ Args:
 Returns:
     list[LLMModel]
 """
-        variables: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
         if filter is not UNSET:
             variables['filter'] = filter
         if order is not UNSET:
@@ -1918,7 +1919,7 @@ Args:
 Returns:
     list[LLMModel]
 """
-        variables: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
         if filter is not UNSET:
             variables['filter'] = filter
         if order is not UNSET:
@@ -1939,7 +1940,7 @@ Args:
 Returns:
     Message
 """
-        variables: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
         variables['id'] = id
         return (await self.aexecute(GetMessageQuery, variables, task=task)).message
 
@@ -1955,7 +1956,7 @@ Args:
 Returns:
     Message
 """
-        variables: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
         variables['id'] = id
         return self.execute(GetMessageQuery, variables, task=task).message
 
@@ -1974,7 +1975,7 @@ Args:
 Returns:
     list[SearchMessagesQueryMessages]
 """
-        variables: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
         if search is not UNSET:
             variables['search'] = search
         if values is not UNSET:
@@ -2000,7 +2001,7 @@ Args:
 Returns:
     list[SearchMessagesQueryMessages]
 """
-        variables: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
         if search is not UNSET:
             variables['search'] = search
         if values is not UNSET:
@@ -2025,7 +2026,7 @@ Args:
 Returns:
     list[ListMessage]
 """
-        variables: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
         if filter is not UNSET:
             variables['filter'] = filter
         if order is not UNSET:
@@ -2048,7 +2049,7 @@ Args:
 Returns:
     list[ListMessage]
 """
-        variables: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
         if filter is not UNSET:
             variables['filter'] = filter
         if order is not UNSET:
@@ -2069,7 +2070,7 @@ Args:
 Returns:
     Room
 """
-        variables: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
         variables['id'] = id
         return (await self.aexecute(GetRoomQuery, variables, task=task)).room
 
@@ -2085,7 +2086,7 @@ Args:
 Returns:
     Room
 """
-        variables: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
         variables['id'] = id
         return self.execute(GetRoomQuery, variables, task=task).room
 
@@ -2104,7 +2105,7 @@ Args:
 Returns:
     list[SearchRoomsQueryRooms]
 """
-        variables: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
         if search is not UNSET:
             variables['search'] = search
         if values is not UNSET:
@@ -2130,7 +2131,7 @@ Args:
 Returns:
     list[SearchRoomsQueryRooms]
 """
-        variables: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
         if search is not UNSET:
             variables['search'] = search
         if values is not UNSET:
@@ -2155,7 +2156,7 @@ Args:
 Returns:
     list[Room]
 """
-        variables: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
         if filter is not UNSET:
             variables['filter'] = filter
         if order is not UNSET:
@@ -2178,7 +2179,7 @@ Args:
 Returns:
     list[Room]
 """
-        variables: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
         if filter is not UNSET:
             variables['filter'] = filter
         if order is not UNSET:
@@ -2201,7 +2202,7 @@ Args:
 Returns:
     WatchRoomSubscriptionRoom
 """
-        variables: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
         variables['room'] = room
         variables['agentId'] = agent_id
         if filter_own is not UNSET:
@@ -2223,7 +2224,7 @@ Args:
 Returns:
     WatchRoomSubscriptionRoom
 """
-        variables: dict[str, Any] = {}
+        variables: dict[str, builtins.object] = {}
         variables['room'] = room
         variables['agentId'] = agent_id
         if filter_own is not UNSET:
