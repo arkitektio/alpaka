@@ -1,28 +1,67 @@
 # alpaka
 
-[![codecov](https://codecov.io/gh/jhnnsrs/akuire/branch/master/graph/badge.svg?token=UGXEA2THBV)](https://codecov.io/gh/jhnnsrs/akuire)
-[![PyPI version](https://badge.fury.io/py/akuire.svg)](https://pypi.org/project/akuire/)
-[![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://pypi.org/project/akuire/)
+[![PyPI version](https://badge.fury.io/py/alpaka.svg)](https://pypi.org/project/alpaka/)
+[![PyPI pyversions](https://img.shields.io/pypi/pyversions/alpaka.svg)](https://pypi.python.org/pypi/alpaka/)
 ![Maintainer](https://img.shields.io/badge/maintainer-jhnnsrs-blue)
-[![PyPI pyversions](https://img.shields.io/pypi/pyversions/akuire.svg)](https://pypi.python.org/pypi/akuire/)
-[![PyPI status](https://img.shields.io/pypi/status/akuire.svg)](https://pypi.python.org/pypi/akuire/)
 
-Alpaka is the arkitekt LLM gateway client. The alpaka server fronts litellm —
+Alpaka is the [Arkitekt](https://arkitekt.live) LLM gateway client. The alpaka server fronts litellm —
 Ollama, OpenAI, Anthropic, OpenRouter and friends — behind arkitekt auth, a
 per-organization model registry, and an **OpenAI-compatible REST API**. This
 package deliberately does not reinvent a chat SDK: it brokers the connection
 and hands you the client you already know.
 
-## Chat: use the SDK you like, tunneled through alpaka
+## Installation
+
+```sh
+pip install "alpaka[openai]"
+```
+
+The `openai` extra brings the tunnel (the `openai` SDK, `httpx`, `fakts`).
+
+## Usage
+
+Every alpaka operation is a method of the `Alpaka` client, in a blocking and an
+`a`-prefixed async flavour. Its `openai` / `aopenai` properties are real
+`openai.OpenAI` / `openai.AsyncOpenAI` clients pointed at your alpaka server.
+
+### In an arkitekt app
+
+The client is injected by annotation. Add the service to your app and ask for
+`alpaka: Alpaka`:
 
 ```python
-import alpaka
-from arkitekt import App, connect
+from arkitekt import App, run
+from alpaka import Alpaka, alpaka_service
 
-with connect(App("chat", services=[alpaka.alpaka_service])) as rt:
-    client = rt.require(alpaka.Alpaka).openai  # a real openai.OpenAI, pointed at your alpaka server
+app = App("summarize", "0.1.0", services=[alpaka_service])
 
-    response = client.chat.completions.create(
+
+@app.action
+def summarize(text: str, alpaka: Alpaka) -> str:
+    """Summarize"""
+    response = alpaka.openai.chat.completions.create(
+        model="alpaka/default",
+        messages=[{"role": "user", "content": f"Summarize: {text}"}],
+    )
+    return response.choices[0].message.content or ""
+
+
+if __name__ == "__main__":
+    run(app)
+```
+
+Rooms, models and messages travel between actions by id (`@alpaka/room`,
+`@alpaka/llmmodel`, `@alpaka/message`), so an action can take and return them
+directly.
+
+### From a script
+
+```python
+from arkitekt import easy
+from alpaka import alpaka_service
+
+with easy("chat", alpaka_service) as alpaka:
+    response = alpaka.openai.chat.completions.create(
         model="alpaka/default",  # or "openrouter/gpt-4", "ollama/llama3", a registry id...
         messages=[{"role": "user", "content": "Hello!"}],
         stream=True,
@@ -31,18 +70,17 @@ with connect(App("chat", services=[alpaka.alpaka_service])) as rt:
         print(chunk.choices[0].delta.content or "", end="")
 ```
 
-Requires the `openai` extra: `pip install alpaka[openai]`. The client builds the
-SDK client once, on first use, from the endpoint and token loader its service
-gave it; `alpaka_client.aopenai` is the `openai.AsyncOpenAI` twin. Auth tokens
-are re-read on every request, so long-running sessions survive token expiry.
-For SDK options of your own, `alpaka.build_openai(alpaka_client.llm_url,
-alpaka_client.tokens, max_retries=7)` builds a fresh one the same way.
+The client builds the SDK client once, on first use, from the endpoint and
+token loader its service gave it. Auth tokens are re-read on every request, so
+long-running sessions survive token expiry. For SDK options of your own,
+`build_openai(alpaka.llm_url, alpaka.tokens, max_retries=7)` (and
+`build_async_openai`, both importable from `alpaka`) builds a fresh one the same way.
 
 Anything else that speaks the OpenAI wire format — LangChain, curl, a JS app —
 can tunnel too:
 
 ```python
-endpoint = rt.require(alpaka.Alpaka).get_endpoint()
+endpoint = alpaka.get_endpoint()
 print(endpoint.base_url)  # .../llm/v1
 print(endpoint.api_key)   # your current arkitekt token (expires!)
 ```
@@ -58,20 +96,19 @@ you have a stream of tokens, forward it into the room and every subscriber sees
 it grow.
 
 ```python
-import alpaka
-from arkitekt import App, connect
+from arkitekt import aeasy
+from alpaka import alpaka_service, stream_into_room
 
-async with connect(App("chat", services=[alpaka.alpaka_service])) as rt:
-    alpaka_client = rt.require(alpaka.Alpaka)
-    client = alpaka_client.aopenai
-    completion = await client.chat.completions.create(
+async with aeasy("chat", alpaka_service) as alpaka:
+    room = await alpaka.acreate_room(title="Demo")
+    completion = await alpaka.aopenai.chat.completions.create(
         model="alpaka/default",
         messages=[{"role": "user", "content": "Hello!"}],
         stream=True,
     )
 
     # The alpaka client to write through is passed in: nothing is looked up.
-    async with alpaka.stream_into_room(alpaka_client, room=room.id, agent_id="assistant") as reply:
+    async with stream_into_room(alpaka, room=room.id, agent_id="assistant") as reply:
         async for chunk in completion:
             await reply.append(chunk.choices[0].delta.content or "")
 ```
@@ -80,13 +117,12 @@ async with connect(App("chat", services=[alpaka.alpaka_service])) as rt:
 ~150 ms, so you do not pay a mutation per token), sends them in order, and always
 finishes the message on the way out — with the full accumulated text, so a delta
 lost on the way is repaired, and a raising body cannot leave a message
-`isStreaming` forever. Watch a room with `service.watch_room` / `service.awatch_room`: every
+`isStreaming` forever. Watch a room with `alpaka.watch_room` / `alpaka.awatch_room`: every
 event carries a `kind` (`MESSAGE_CREATED`, `MESSAGE_UPDATED`, `MESSAGE_FINISHED`,
 `JOIN`, `LEAVE`). A subscription only sees what happens after it joins.
 
-The underlying mutations (`service.start_message` / `append_message` /
-`finish_message`, like every generated operation a method of the `Alpaka`
-client) are there if you want to drive it yourself; the server also has a
+The underlying mutations (`alpaka.start_message` / `append_message` /
+`finish_message`) are there if you want to drive it yourself; the server also has a
 one-frame-per-token websocket at `/kammer/stream/` for clients that need it.
 
 ## Testing
@@ -116,10 +152,10 @@ it up when it exists, and CI keeps testing the published image.
 ## GraphQL client
 
 The generated GraphQL client (every operation in `alpaka.api.schema` is a
-method of `AlpakaApi`, which the `Alpaka` client mixes in: `service.aget_room(id)`)
+method of `AlpakaApi`, which the `Alpaka` client mixes in: `alpaka.aget_room(id)`)
 covers the registry and
 collaboration surface: listing and searching `LLMModel`s and providers, rooms
 and messages (including the streaming mutations above), and the ChromaDB
 vector-collection RAG API. The `chat` mutation
-exists for rekuest-registered functions that receive an `LLMModel` picker, but
+exists for arkitekt actions that receive an `LLMModel` picker, but
 for interactive chat and streaming prefer the tunnel above.
