@@ -152,6 +152,7 @@ source = { editable = "." }
 dependencies = [
     { name = "aiohttp" },
     { name = "arkitekt-spec" },
+    { name = "fakts" },
     { name = "koil" },
     { name = "rath" },
     { name = "websockets" },
@@ -184,6 +185,7 @@ dev = [
 requires-dist = [
     { name = "aiohttp", specifier = ">=3.9.5,<4" },
     { name = "arkitekt-spec", specifier = ">=1.1.1" },
+    { name = "fakts", specifier = ">=4" },
     { name = "fakts", marker = "extra == 'openai'", specifier = ">=4" },
     { name = "httpx", marker = "extra == 'openai'", specifier = ">=0.27" },
     { name = "koil", specifier = ">=1.0.0" },
