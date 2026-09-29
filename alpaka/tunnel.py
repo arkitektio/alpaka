@@ -96,6 +96,7 @@ def build_openai(
     tokens: "TokenLoader",
     *,
     transport: "httpx.BaseTransport | None" = None,
+    proxy: str | None = None,
     **kwargs: Any,
 ) -> "OpenAI":
     """A native ``openai.OpenAI`` client tunneled through alpaka.
@@ -106,6 +107,9 @@ def build_openai(
         transport: An ``httpx`` transport to route requests through (a
             ``MockTransport`` in tests). The http client itself is always built
             here, with the bearer auth.
+        proxy: An HTTP forward proxy (``http://host:port``) to reach alpaka
+            through, when it is only reachable over a private mesh. ``None``
+            connects directly.
         **kwargs: Forwarded to the SDK constructor (``max_retries=``, ...).
 
     Returns:
@@ -118,7 +122,10 @@ def build_openai(
 
     _refuse_http_client(kwargs)
     http_client = httpx.Client(
-        auth=TokenAuth(tokens), timeout=httpx.Timeout(600.0), transport=transport
+        auth=TokenAuth(tokens),
+        timeout=httpx.Timeout(600.0),
+        transport=transport,
+        proxy=proxy,
     )
     return OpenAI(
         base_url=base_url, api_key=PLACEHOLDER_API_KEY, http_client=http_client, **kwargs
@@ -130,6 +137,7 @@ def build_async_openai(
     tokens: "TokenLoader",
     *,
     transport: "httpx.AsyncBaseTransport | None" = None,
+    proxy: str | None = None,
     **kwargs: Any,
 ) -> "AsyncOpenAI":
     """A native ``openai.AsyncOpenAI`` client tunneled through alpaka.
@@ -140,7 +148,10 @@ def build_async_openai(
 
     _refuse_http_client(kwargs)
     http_client = httpx.AsyncClient(
-        auth=TokenAuth(tokens), timeout=httpx.Timeout(600.0), transport=transport
+        auth=TokenAuth(tokens),
+        timeout=httpx.Timeout(600.0),
+        transport=transport,
+        proxy=proxy,
     )
     return AsyncOpenAI(
         base_url=base_url, api_key=PLACEHOLDER_API_KEY, http_client=http_client, **kwargs

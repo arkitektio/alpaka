@@ -113,7 +113,7 @@ async def test_unset_arguments_stay_off_the_wire() -> None:
 
 
 def test_every_operation_is_a_method_and_the_client_has_only_its_fields() -> None:
-    assert set(Alpaka.model_fields) == {"rath", "llm_url", "tokens"}
+    assert set(Alpaka.model_fields) == {"rath", "llm_url", "tokens", "proxy"}
     for name in ("aget_room", "get_room", "achat", "astart_message", "awatch_room"):
         assert callable(getattr(Alpaka, name))
 
