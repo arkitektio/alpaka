@@ -11,9 +11,9 @@ dependencies = [
     "rath>=4.1.1",
     "websockets>=15.0.1",
     # The service and structures are declared with arkitekt-spec.
-    "arkitekt-spec>=1.4",
+    "arkitekt-spec>=3.4",
     # The service wiring (Alias, Require, FaktsAuthLink); it came through rekuest before.
-    "fakts>=4",
+    "fakts>=5.4",
 ]
 
 [project.optional-dependencies]
@@ -22,7 +22,7 @@ dependencies = [
 # The arkitekt integration (alpaka.arkitekt) has no extra of
 # its own: arkitekt depends on alpaka and brings fakts/rekuest itself —
 # the guarded imports in __init__ light up when it is installed alongside.
-openai = ["openai>=1.30", "httpx>=0.27", "fakts>=4"]
+openai = ["openai>=1.30", "httpx>=0.27", "fakts>=5.4"]
 
 
 [tool.uv]
@@ -31,7 +31,7 @@ dev-dependencies = [
     # (tests/test_tunnel.py) and the SDK integration test actually run.
     "openai>=1.30",
     "httpx>=0.27",
-    "fakts>=4",
+    "fakts>=5.4",
     "dokker>=2.8",
     "pytest>=8.3.5",
     "pytest-asyncio>=0.26.0",
