@@ -8,13 +8,27 @@ services:
       POSTGRES_MULTIPLE_DATABASES: alpaka
       POSTGRES_PASSWORD: hello_django
       POSTGRES_USER: hello_django
+  # Brings the database to the image's release, once, before the server is started: a
+  # service's own start only serves.
+  alpaka-migrate:
+    depends_on:
+    - db
+    image: jhnnsrs/alpaka:${ALPAKA_SERVICE_TAG:-latest}
+    command: arkitekt-service run migrate
+    volumes:
+    - ./configs/alpaka.yaml:/workspace/config.yaml
   alpaka:
     depends_on:
-    - redis
-    - db
-    - rustfs
+      redis:
+        condition: service_started
+      db:
+        condition: service_started
+      rustfs:
+        condition: service_started
+      alpaka-migrate:
+        condition: service_completed_successfully
     image: jhnnsrs/alpaka:${ALPAKA_SERVICE_TAG:-latest}
-    command: bash run-debug.sh
+    command: arkitekt-service debug
     stop_grace_period: 1s
     ports:
     - "${ALPAKA_HOST_PORT:-6888}:80"
