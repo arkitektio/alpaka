@@ -59,6 +59,12 @@ projects:
           JSON: typing.Any
           ID: rath.scalars.ID
           Base64EncodedString: str
+        # The structure each type is known by across the hub (arkitekt-service's
+        # `@identified`), on every class generated for it, a nested selection included.
+        directive_class_vars:
+          - directive: identified
+            argument: by
+            attribute: __identifier__
         additional_bases:
           ChatResponse:
             - alpaka.traits.ChatResponseTraits

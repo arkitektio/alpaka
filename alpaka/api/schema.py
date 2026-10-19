@@ -5,7 +5,7 @@ from enum import Enum
 from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 from rath.scalars import ID, IDCoercible
 from rath.task import TaskLike
-from typing import Annotated, Any, AsyncIterator, Iterable, Iterator, Literal
+from typing import Annotated, Any, AsyncIterator, ClassVar, Iterable, Iterator, Literal
 
 class GraphQLDefault:
     """Records a GraphQL field schema default value. The client omits the field so the server applies its own default; this preserves the value for introspection."""
@@ -32,11 +32,25 @@ class UnsetType:
         return False
 UNSET = UnsetType()
 
+class DescriptorOperator(str, Enum):
+    """How a descriptor constraint compares the object's value with the stated one. The operators a rekuest port's `requires` and `provides` are written in, with the same meaning."""
+    EQUALS = 'EQUALS'
+    MATCHES = 'MATCHES'
+    NOT_EQUALS = 'NOT_EQUALS'
+    GTE = 'GTE'
+    LTE = 'LTE'
+    EXISTS = 'EXISTS'
+    CONTAINS = 'CONTAINS'
+    IN = 'IN'
+    NOT_IN = 'NOT_IN'
+    __str__ = str.__str__
+
 class FeatureType(str, Enum):
     """A capability a model supports"""
     EMBEDDING = 'EMBEDDING'
     CHAT = 'CHAT'
     VISION = 'VISION'
+    DECISION = 'DECISION'
     __str__ = str.__str__
 
 class Modality(str, Enum):
@@ -80,6 +94,8 @@ class ProviderKind(str, Enum):
     CUSTOM = 'CUSTOM'
     UNKNOWN = 'UNKNOWN'
     OPENROUTER = 'OPENROUTER'
+    TYPESAFE = 'TYPESAFE'
+    OLLAYA = 'OLLAYA'
     __str__ = str.__str__
 
 class Role(str, Enum):
@@ -149,7 +165,8 @@ class ChromaCollectionFilter(BaseModel):
     not_: 'ChromaCollectionFilter | None' = Field(validation_alias=AliasChoices('not_', 'NOT'), serialization_alias='NOT', default=None)
     distinct: bool | None = Field(validation_alias=AliasChoices('distinct', 'DISTINCT'), serialization_alias='DISTINCT', default=None)
     ids: tuple[ID, ...] | None = None
-    search: str | None = None
+    search: str | None = Field(default=None, description="Search by name: a case-insensitive substring, or semantic similarity of the query to the collection's name and description. Substring matches rank first, then by similarity; an explicit `ordering` replaces that ranking.")
+    requires: tuple['DescriptorConstraintInput', ...] | None = Field(default=None, description='Filter to the objects satisfying every one of these descriptor constraints: the `requires` of a port, handed on unchanged, so a picker offers what the port accepts. Answered from the stored descriptors, in one indexed query')
     model_config = ConfigDict(frozen=True, extra='forbid', populate_by_name=True, use_enum_values=True)
 
 class ChromaCollectionInput(BaseModel):
@@ -169,6 +186,13 @@ class ChromaCollectionOrderCreatedAt(BaseModel):
     created_at: Ordering = Field(validation_alias=AliasChoices('created_at', 'createdAt'), serialization_alias='createdAt')
     model_config = ConfigDict(frozen=True, extra='forbid', populate_by_name=True, use_enum_values=True)
 ChromaCollectionOrder = ChromaCollectionOrderName | ChromaCollectionOrderCreatedAt
+
+class DescriptorConstraintInput(BaseModel):
+    """One constraint on an object's descriptors, in the shape a rekuest port states its `requires` in -- so a picker hands a port's constraints on unchanged. `key` is one of the keys the structure declares (e.g. `@alpaka/provider_kind`); a key it does not declare is refused."""
+    key: str = Field(description='The descriptor key, e.g. `@alpaka/provider_kind`')
+    operator: DescriptorOperator = Field(description="How the object's value is compared with `value`. MATCHES is equality, as EQUALS is")
+    value: Any | None = Field(default=None, description='The value compared against: a number for GTE and LTE, a list for IN and NOT_IN, true or false for EXISTS, the member looked for with CONTAINS')
+    model_config = ConfigDict(frozen=True, extra='forbid', populate_by_name=True, use_enum_values=True)
 
 class DocumentInput(BaseModel):
     """A document to put into the vector database"""
@@ -209,6 +233,7 @@ class LLMModelFilter(BaseModel):
     output_modalities: tuple[Modality, ...] | None = Field(validation_alias=AliasChoices('output_modalities', 'outputModalities'), serialization_alias='outputModalities', default=None)
     features: tuple[FeatureType, ...] | None = None
     provider: ID | None = None
+    requires: tuple[DescriptorConstraintInput, ...] | None = Field(default=None, description='Filter to the objects satisfying every one of these descriptor constraints: the `requires` of a port, handed on unchanged, so a picker offers what the port accepts. Answered from the stored descriptors, in one indexed query')
     model_config = ConfigDict(frozen=True, extra='forbid', populate_by_name=True, use_enum_values=True)
 
 class LLMModelOrderLabel(BaseModel):
@@ -230,6 +255,7 @@ class MessageFilter(BaseModel):
     distinct: bool | None = Field(validation_alias=AliasChoices('distinct', 'DISTINCT'), serialization_alias='DISTINCT', default=None)
     ids: tuple[ID, ...] | None = None
     search: str | None = None
+    requires: tuple[DescriptorConstraintInput, ...] | None = Field(default=None, description='Filter to the objects satisfying every one of these descriptor constraints: the `requires` of a port, handed on unchanged, so a picker offers what the port accepts. Answered from the stored descriptors, in one indexed query')
     model_config = ConfigDict(frozen=True, extra='forbid', populate_by_name=True, use_enum_values=True)
 
 class MessageOrderCreatedAt(BaseModel):
@@ -271,14 +297,15 @@ class QueryInput(BaseModel):
     model_config = ConfigDict(frozen=True, extra='forbid', populate_by_name=True, use_enum_values=True)
 
 class RoomFilter(BaseModel):
-    """Room(id, title, description, creator, organization, created_at)"""
+    """A conversation; embeds its title + description so the room list's ``search`` finds it by topic."""
     and_: 'RoomFilter | None' = Field(validation_alias=AliasChoices('and_', 'AND'), serialization_alias='AND', default=None)
     or_: 'RoomFilter | None' = Field(validation_alias=AliasChoices('or_', 'OR'), serialization_alias='OR', default=None)
     not_: 'RoomFilter | None' = Field(validation_alias=AliasChoices('not_', 'NOT'), serialization_alias='NOT', default=None)
     distinct: bool | None = Field(validation_alias=AliasChoices('distinct', 'DISTINCT'), serialization_alias='DISTINCT', default=None)
     ids: tuple[ID, ...] | None = None
-    search: str | None = None
+    search: str | None = Field(default=None, description="Search by title: a case-insensitive substring, or semantic similarity of the query to the room's title and description. Substring matches rank first, then by similarity; an explicit `ordering` replaces that ranking.")
     talking_about: 'StructureInput | None' = Field(validation_alias=AliasChoices('talking_about', 'talkingAbout'), serialization_alias='talkingAbout', default=None)
+    requires: tuple[DescriptorConstraintInput, ...] | None = Field(default=None, description='Filter to the objects satisfying every one of these descriptor constraints: the `requires` of a port, handed on unchanged, so a picker offers what the port accepts. Answered from the stored descriptors, in one indexed query')
     model_config = ConfigDict(frozen=True, extra='forbid', populate_by_name=True, use_enum_values=True)
 
 class RoomOrderCreatedAt(BaseModel):
@@ -314,6 +341,7 @@ class ToolInput(BaseModel):
 
 class ChromaCollection(BaseModel):
     """A collection of documents searchable by string"""
+    __identifier__: ClassVar[Literal['@alpaka/chromacollection']] = '@alpaka/chromacollection'
     typename: Literal['ChromaCollection'] = Field(alias='__typename', default='ChromaCollection', exclude=True)
     id: ID
     name: str
@@ -346,6 +374,7 @@ class Document(BaseModel):
 
 class LLMModelProvider(BaseModel):
     """A provider of LLMs"""
+    __identifier__: ClassVar[Literal['@alpaka/provider']] = '@alpaka/provider'
     typename: Literal['Provider'] = Field(alias='__typename', default='Provider', exclude=True)
     id: ID
     name: str
@@ -353,6 +382,7 @@ class LLMModelProvider(BaseModel):
 
 class LLMModelEmbedderFor(BaseModel):
     """A collection of documents searchable by string"""
+    __identifier__: ClassVar[Literal['@alpaka/chromacollection']] = '@alpaka/chromacollection'
     typename: Literal['ChromaCollection'] = Field(alias='__typename', default='ChromaCollection', exclude=True)
     id: ID
     name: str
@@ -361,6 +391,7 @@ class LLMModelEmbedderFor(BaseModel):
 
 class LLMModel(BaseModel):
     """A LLM model to chage with"""
+    __identifier__: ClassVar[Literal['@alpaka/llmmodel']] = '@alpaka/llmmodel'
     typename: Literal['LLMModel'] = Field(alias='__typename', default='LLMModel', exclude=True)
     id: ID
     provider: LLMModelProvider
@@ -392,6 +423,7 @@ class ListMessageAttachedStructures(BaseModel):
 
 class ListMessage(BaseModel):
     """Message represent the message of an agent on a room"""
+    __identifier__: ClassVar[Literal['@alpaka/message']] = '@alpaka/message'
     typename: Literal['Message'] = Field(alias='__typename', default='Message', exclude=True)
     id: ID
     text: str
@@ -412,6 +444,7 @@ class ListMessage(BaseModel):
 
 class ProviderModels(BaseModel):
     """A LLM model to chage with"""
+    __identifier__: ClassVar[Literal['@alpaka/llmmodel']] = '@alpaka/llmmodel'
     typename: Literal['LLMModel'] = Field(alias='__typename', default='LLMModel', exclude=True)
     id: ID
     model_id: str = Field(alias='modelId')
@@ -421,6 +454,7 @@ class ProviderModels(BaseModel):
 
 class Provider(BaseModel):
     """A provider of LLMs"""
+    __identifier__: ClassVar[Literal['@alpaka/provider']] = '@alpaka/provider'
     typename: Literal['Provider'] = Field(alias='__typename', default='Provider', exclude=True)
     id: ID
     name: str
@@ -511,6 +545,7 @@ class ChatResponse(ChatResponseTraits, BaseModel):
 
 class Room(BaseModel):
     """A room agents and users converse in"""
+    __identifier__: ClassVar[Literal['@alpaka/room']] = '@alpaka/room'
     typename: Literal['Room'] = Field(alias='__typename', default='Room', exclude=True)
     id: ID
     title: str
@@ -526,6 +561,7 @@ class Room(BaseModel):
 
 class MessageAgentRoom(BaseModel):
     """A room agents and users converse in"""
+    __identifier__: ClassVar[Literal['@alpaka/room']] = '@alpaka/room'
     typename: Literal['Room'] = Field(alias='__typename', default='Room', exclude=True)
     id: ID
     model_config = ConfigDict(frozen=True)
@@ -536,10 +572,12 @@ class MessageAgent(BaseModel):
     id: ID
     name: str | None = Field(default=None)
     room: MessageAgentRoom
+    'The room this agent participates in'
     model_config = ConfigDict(frozen=True)
 
 class MessageRoom(BaseModel):
     """A room agents and users converse in"""
+    __identifier__: ClassVar[Literal['@alpaka/room']] = '@alpaka/room'
     typename: Literal['Room'] = Field(alias='__typename', default='Room', exclude=True)
     id: ID
     title: str
@@ -555,6 +593,7 @@ class MessageAttachedStructures(BaseModel):
 
 class Message(BaseModel):
     """Message represent the message of an agent on a room"""
+    __identifier__: ClassVar[Literal['@alpaka/message']] = '@alpaka/message'
     typename: Literal['Message'] = Field(alias='__typename', default='Message', exclude=True)
     id: ID
     text: str
@@ -685,7 +724,7 @@ class PullMutationPull(BaseModel):
 class PullMutation(BaseModel):
     """No documentation found for this operation."""
     pull: PullMutationPull
-    'Pull a model into an Ollama provider'
+    'Pull a model into an Ollama provider, or a decision model into an Ollaya provider'
 
     class Arguments(BaseModel):
         """Arguments for Pull """
@@ -769,6 +808,7 @@ class GetChromaCollectionQuery(BaseModel):
 
 class SearchChromaCollectionQueryOptions(BaseModel):
     """A collection of documents searchable by string"""
+    __identifier__: ClassVar[Literal['@alpaka/chromacollection']] = '@alpaka/chromacollection'
     typename: Literal['ChromaCollection'] = Field(alias='__typename', default='ChromaCollection', exclude=True)
     value: ID
     label: str
@@ -834,6 +874,7 @@ class GetLLMModelQuery(BaseModel):
 
 class SearchLLMModelsQueryOptions(BaseModel):
     """A LLM model to chage with"""
+    __identifier__: ClassVar[Literal['@alpaka/llmmodel']] = '@alpaka/llmmodel'
     typename: Literal['LLMModel'] = Field(alias='__typename', default='LLMModel', exclude=True)
     value: ID
     label: str
@@ -885,6 +926,7 @@ class GetMessageQuery(BaseModel):
 
 class SearchMessagesQueryOptions(BaseModel):
     """Message represent the message of an agent on a room"""
+    __identifier__: ClassVar[Literal['@alpaka/message']] = '@alpaka/message'
     typename: Literal['Message'] = Field(alias='__typename', default='Message', exclude=True)
     value: ID
     label: str
@@ -936,6 +978,7 @@ class GetRoomQuery(BaseModel):
 
 class SearchRoomsQueryOptions(BaseModel):
     """A room agents and users converse in"""
+    __identifier__: ClassVar[Literal['@alpaka/room']] = '@alpaka/room'
     typename: Literal['Room'] = Field(alias='__typename', default='Room', exclude=True)
     value: ID
     label: str
@@ -1411,7 +1454,7 @@ Returns:
     async def apull(self, model_name: str, provider: IDCoercible | None | UnsetType=UNSET, task: TaskLike | None=None) -> PullMutationPull:
         """Pull 
 
-Pull a model into an Ollama provider
+Pull a model into an Ollama provider, or a decision model into an Ollaya provider
 
 Args:
     model_name: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required)
@@ -1432,7 +1475,7 @@ Returns:
     def pull(self, model_name: str, provider: IDCoercible | None | UnsetType=UNSET, task: TaskLike | None=None) -> PullMutationPull:
         """Pull 
 
-Pull a model into an Ollama provider
+Pull a model into an Ollama provider, or a decision model into an Ollaya provider
 
 Args:
     model_name: The `String` scalar type represents textual data, represented as UTF-8 character sequences. The String type is most often used by GraphQL to represent free-form human-readable text. (required)
