@@ -40,6 +40,7 @@ dev-dependencies = [
     "testcontainers==3.7.0",
     "python-semantic-release>=9.21.1",
     "ruff>0.11",
+    "turms>=2.3.0",
     "basedpyright>=1.21",
 ]
 
