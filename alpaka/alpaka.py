@@ -2,7 +2,8 @@
 
 from collections.abc import AsyncGenerator, Generator
 import ssl
-from typing import Any
+from types import TracebackType
+from typing import Any, Self
 
 from typing import TYPE_CHECKING
 
@@ -77,6 +78,24 @@ class Alpaka(Composition, AlpakaApi):
 
     _openai: "OpenAI | None" = PrivateAttr(default=None)
     _aopenai: "AsyncOpenAI | None" = PrivateAttr(default=None)
+
+    async def __aenter__(self) -> Self:
+        """Connect the rath, and nothing else.
+
+        Not a composition's enter-every-field: ``tokens`` is borrowed -- under an
+        app it is the runtime's own fakts, already entered by the runtime, and
+        fakts refuses a second enter.
+        """
+        await self.rath.__aenter__()
+        return self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
+        await self.rath.__aexit__(exc_type, exc_val, exc_tb)
 
     @property
     def openai(self) -> "OpenAI":
