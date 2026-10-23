@@ -1,6 +1,7 @@
 """The base client for alpaka"""
 
 from collections.abc import AsyncGenerator, Generator
+import ssl
 from typing import Any
 
 from typing import TYPE_CHECKING
@@ -65,6 +66,15 @@ class Alpaka(Composition, AlpakaApi):
         ),
     )
 
+    ssl_context: ssl.SSLContext | None = Field(
+        None,
+        exclude=True,
+        description=(
+            "The context alpaka's tunnel is reached with: its hub's certificate alone when "
+            "the alias is pinned; None verifies as httpx does by default"
+        ),
+    )
+
     _openai: "OpenAI | None" = PrivateAttr(default=None)
     _aopenai: "AsyncOpenAI | None" = PrivateAttr(default=None)
 
@@ -78,7 +88,7 @@ class Alpaka(Composition, AlpakaApi):
         if self._openai is None:
             from alpaka.tunnel import build_openai
 
-            self._openai = build_openai(self.llm_url, self.tokens, proxy=self.proxy)
+            self._openai = build_openai(self.llm_url, self.tokens, proxy=self.proxy, ssl_context=self.ssl_context)
         return self._openai
 
     @property
@@ -91,7 +101,7 @@ class Alpaka(Composition, AlpakaApi):
         if self._aopenai is None:
             from alpaka.tunnel import build_async_openai
 
-            self._aopenai = build_async_openai(self.llm_url, self.tokens, proxy=self.proxy)
+            self._aopenai = build_async_openai(self.llm_url, self.tokens, proxy=self.proxy, ssl_context=self.ssl_context)
         return self._aopenai
 
     def get_endpoint(self) -> "AlpakaEndpoint":

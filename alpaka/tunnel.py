@@ -24,6 +24,7 @@ Model names accept the server's registry forms: ``provider/model-id`` (e.g.
 default model.
 """
 
+import ssl
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -97,6 +98,7 @@ def build_openai(
     *,
     transport: "httpx.BaseTransport | None" = None,
     proxy: str | None = None,
+    ssl_context: "ssl.SSLContext | None" = None,
     **kwargs: Any,
 ) -> "OpenAI":
     """A native ``openai.OpenAI`` client tunneled through alpaka.
@@ -110,6 +112,9 @@ def build_openai(
         proxy: An HTTP forward proxy (``http://host:port``) to reach alpaka
             through, when it is only reachable over a private mesh. ``None``
             connects directly.
+        ssl_context: What to verify alpaka's TLS by: its hub's certificate alone
+            for a pinned alias (``Alias.ssl_context()``). ``None`` is httpx's
+            default.
         **kwargs: Forwarded to the SDK constructor (``max_retries=``, ...).
 
     Returns:
@@ -126,6 +131,7 @@ def build_openai(
         timeout=httpx.Timeout(600.0),
         transport=transport,
         proxy=proxy,
+        verify=ssl_context if ssl_context is not None else True,
     )
     return OpenAI(
         base_url=base_url, api_key=PLACEHOLDER_API_KEY, http_client=http_client, **kwargs
@@ -138,6 +144,7 @@ def build_async_openai(
     *,
     transport: "httpx.AsyncBaseTransport | None" = None,
     proxy: str | None = None,
+    ssl_context: "ssl.SSLContext | None" = None,
     **kwargs: Any,
 ) -> "AsyncOpenAI":
     """A native ``openai.AsyncOpenAI`` client tunneled through alpaka.
@@ -152,6 +159,7 @@ def build_async_openai(
         timeout=httpx.Timeout(600.0),
         transport=transport,
         proxy=proxy,
+        verify=ssl_context if ssl_context is not None else True,
     )
     return AsyncOpenAI(
         base_url=base_url, api_key=PLACEHOLDER_API_KEY, http_client=http_client, **kwargs

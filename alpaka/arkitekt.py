@@ -61,12 +61,13 @@ def alpaka(
         llm_url=alpaka.to_http_path("/llm/v1"),
         tokens=tokens,
         proxy=alpaka.proxy,
+        ssl_context=alpaka.ssl_context() if alpaka.is_pinned() else None,
         rath=AlpakaRath(
             link=compose(
                 FaktsAuthLink(token_loader=tokens),
                 SplitLink(
-                    left=AIOHttpLink(endpoint_url=alpaka.to_http_path("graphql"), proxy=alpaka.proxy),
-                    right=GraphQLWSLink(ws_endpoint_url=alpaka.to_ws_path("graphql"), proxy=alpaka.proxy),
+                    left=AIOHttpLink(endpoint_url=alpaka.to_http_path("graphql"), proxy=alpaka.proxy, ssl_context=alpaka.ssl_context()),
+                    right=GraphQLWSLink(ws_endpoint_url=alpaka.to_ws_path("graphql"), proxy=alpaka.proxy, ssl_context=alpaka.ssl_context()),
                     split=lambda o: o.node.operation != OperationType.SUBSCRIPTION,
                 ),
             ),
