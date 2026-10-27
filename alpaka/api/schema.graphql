@@ -506,6 +506,11 @@ input FinishMessageInput {
   attachStructures: [StructureInput!] = null
 }
 
+"""A memory to forget"""
+input ForgetInput {
+  name: String!
+}
+
 """The type of the tool"""
 type FunctionCall {
   name: String!
@@ -599,6 +604,73 @@ input LLMModelFilter {
 input LLMModelOrder @oneOf {
   label: Ordering
   modelId: Ordering
+}
+
+"""
+Something an assistant remembers about the person who assigned its task
+"""
+type Memory {
+  id: ID!
+
+  """A short slug the memory is found and replaced by, unique per person"""
+  name: String!
+
+  """
+  One line saying what the memory holds: what an assistant reads in the index
+  """
+  description: String!
+
+  """The memory itself"""
+  content: String!
+  createdAt: DateTime!
+  updatedAt: DateTime!
+
+  """What the memory is about"""
+  kind: MemoryKind!
+}
+
+"""Filter for memories"""
+input MemoryFilter {
+  AND: MemoryFilter
+  OR: MemoryFilter
+  NOT: MemoryFilter
+  DISTINCT: Boolean
+  ids: [ID!]
+  names: [String!]
+  kind: MemoryKind
+
+  """
+  Search what a memory says: a case-insensitive substring of its name, description or content, or semantic similarity to all three. Substring matches rank first, then by similarity; an explicit `ordering` replaces that ranking.
+  """
+  search: String
+}
+
+"""Something to remember about the person who assigned the task"""
+input MemoryInput {
+  """A short slug to find and replace the memory by: `prefers-tiff-exports`"""
+  name: String!
+
+  """One line saying what the memory holds, read in the index every turn"""
+  description: String!
+
+  """The memory itself"""
+  content: String!
+
+  """What the memory is about"""
+  kind: MemoryKind! = USER
+}
+
+"""What a memory is about"""
+enum MemoryKind {
+  USER
+  FEEDBACK
+  PROJECT
+  REFERENCE
+}
+
+input MemoryOrder @oneOf {
+  name: Ordering
+  updatedAt: Ordering
 }
 
 """Message represent the message of an agent on a room"""
@@ -764,6 +836,14 @@ type Mutation {
 
   """Embed documents and add them to a collection"""
   addDocumentsToCollection(input: AddDocumentsToCollectionInput!): [Document!]!
+
+  """
+  Remember something about the person who assigned the task, replacing the memory of that name. Needs the task's provenance token
+  """
+  remember(input: MemoryInput!): Memory!
+
+  """Forget one of the assigner's memories by name; whether there was one"""
+  forget(input: ForgetInput!): Boolean!
 }
 
 """The answer to a yes/no question"""
@@ -818,7 +898,9 @@ enum Ordering {
 """An Organization model to represent an organization in the system"""
 type Organization @key(fields: "id", resolvable: true) {
   id: ID!
-  slug: String!
+
+  """The organization across issuers and services: `<issuer>#<org>`"""
+  identifier: String!
 }
 
 """A provider of LLMs"""
@@ -951,6 +1033,11 @@ type Query {
   """List this organization's Chroma collections"""
   chromaCollections(filters: ChromaCollectionFilter, ordering: [ChromaCollectionOrder!]! = [], pagination: OffsetPaginationInput): [ChromaCollection!]!
 
+  """
+  What is remembered about the person who assigned the task this request is made for. Needs the task's provenance token
+  """
+  memories(filters: MemoryFilter, ordering: [MemoryOrder!]! = [], pagination: OffsetPaginationInput): [Memory!]!
+
   """Get a single room by ID"""
   room(id: ID!): Room!
 
@@ -977,6 +1064,14 @@ type Query {
 
   """Search a collection for the documents most similar to some text"""
   documents(input: QueryInput!): [Document!]!
+
+  """Get one of the assigner's memories by ID"""
+  memory(id: ID!): Memory!
+
+  """
+  Who assigned the task this request is made for: whose memories it reaches
+  """
+  assigner: User!
 }
 
 """A similarity query against a collection"""

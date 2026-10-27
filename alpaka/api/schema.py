@@ -53,6 +53,14 @@ class FeatureType(str, Enum):
     DECISION = 'DECISION'
     __str__ = str.__str__
 
+class MemoryKind(str, Enum):
+    """What a memory is about"""
+    USER = 'USER'
+    FEEDBACK = 'FEEDBACK'
+    PROJECT = 'PROJECT'
+    REFERENCE = 'REFERENCE'
+    __str__ = str.__str__
+
 class Modality(str, Enum):
     """A modality a model can read or emit"""
     IMAGE = 'IMAGE'
@@ -247,6 +255,15 @@ class LLMModelOrderModelId(BaseModel):
     model_config = ConfigDict(frozen=True, extra='forbid', populate_by_name=True, use_enum_values=True)
 LLMModelOrder = LLMModelOrderLabel | LLMModelOrderModelId
 
+class MemoryInput(BaseModel):
+    """Something to remember about the person who assigned the task"""
+    name: str = Field(description='A short slug to find and replace the memory by: `prefers-tiff-exports`')
+    description: str = Field(description='One line saying what the memory holds, read in the index every turn')
+    content: str = Field(description='The memory itself')
+    kind: Annotated[MemoryKind | None, GraphQLDefault('USER')] = Field(default=None, description='What the memory is about')
+    'What the memory is about\nDefault: USER'
+    model_config = ConfigDict(frozen=True, extra='forbid', populate_by_name=True, use_enum_values=True)
+
 class MessageFilter(BaseModel):
     """Message represent the message of an agent on a room"""
     and_: 'MessageFilter | None' = Field(validation_alias=AliasChoices('and_', 'AND'), serialization_alias='AND', default=None)
@@ -406,6 +423,45 @@ class LLMModel(BaseModel):
         document = 'fragment LLMModel on LLMModel {\n  id\n  provider {\n    id\n    name\n    __typename\n  }\n  features\n  embedderFor {\n    id\n    name\n    __typename\n  }\n  __typename\n}'
         name = 'LLMModel'
         type = 'LLMModel'
+
+class Memory(BaseModel):
+    """Something an assistant remembers about the person who assigned its task"""
+    typename: Literal['Memory'] = Field(alias='__typename', default='Memory', exclude=True)
+    id: ID
+    name: str
+    'A short slug the memory is found and replaced by, unique per person'
+    description: str
+    'One line saying what the memory holds: what an assistant reads in the index'
+    content: str
+    'The memory itself'
+    kind: MemoryKind
+    'What the memory is about'
+    updated_at: datetime = Field(alias='updatedAt')
+    model_config = ConfigDict(frozen=True)
+
+    class Meta:
+        """Meta class for Memory"""
+        document = 'fragment Memory on Memory {\n  id\n  name\n  description\n  content\n  kind\n  updatedAt\n  __typename\n}'
+        name = 'Memory'
+        type = 'Memory'
+
+class MemoryIndexEntry(BaseModel):
+    """Something an assistant remembers about the person who assigned its task"""
+    typename: Literal['Memory'] = Field(alias='__typename', default='Memory', exclude=True)
+    id: ID
+    name: str
+    'A short slug the memory is found and replaced by, unique per person'
+    description: str
+    'One line saying what the memory holds: what an assistant reads in the index'
+    kind: MemoryKind
+    'What the memory is about'
+    model_config = ConfigDict(frozen=True)
+
+    class Meta:
+        """Meta class for MemoryIndexEntry"""
+        document = 'fragment MemoryIndexEntry on Memory {\n  id\n  name\n  description\n  kind\n  __typename\n}'
+        name = 'MemoryIndexEntry'
+        type = 'Memory'
 
 class ListMessageAgent(BaseModel):
     """A participant in a room"""
@@ -685,6 +741,32 @@ class GenerateImageMutation(BaseModel):
         """Meta class for GenerateImage """
         document = 'mutation GenerateImage($input: ImageInput!) {\n  generateImage(input: $input) {\n    image\n    __typename\n  }\n}'
 
+class RememberMutation(BaseModel):
+    """No documentation found for this operation."""
+    remember: Memory
+    "Remember something about the person who assigned the task, replacing the memory of that name. Needs the task's provenance token"
+
+    class Arguments(BaseModel):
+        """Arguments for Remember """
+        input: MemoryInput
+
+    class Meta:
+        """Meta class for Remember """
+        document = 'fragment Memory on Memory {\n  id\n  name\n  description\n  content\n  kind\n  updatedAt\n  __typename\n}\n\nmutation Remember($input: MemoryInput!) {\n  remember(input: $input) {\n    ...Memory\n    __typename\n  }\n}'
+
+class ForgetMutation(BaseModel):
+    """No documentation found for this operation."""
+    forget: bool
+    "Forget one of the assigner's memories by name; whether there was one"
+
+    class Arguments(BaseModel):
+        """Arguments for Forget """
+        name: str
+
+    class Meta:
+        """Meta class for Forget """
+        document = 'mutation Forget($name: String!) {\n  forget(input: {name: $name})\n}'
+
 class SendMutation(BaseModel):
     """No documentation found for this operation."""
     send: Message
@@ -910,6 +992,69 @@ class ListLLModelsQuery(BaseModel):
     class Meta:
         """Meta class for ListLLModels """
         document = 'fragment LLMModel on LLMModel {\n  id\n  provider {\n    id\n    name\n    __typename\n  }\n  features\n  embedderFor {\n    id\n    name\n    __typename\n  }\n  __typename\n}\n\nquery ListLLModels($filter: LLMModelFilter, $order: [LLMModelOrder!], $pagination: OffsetPaginationInput) {\n  llmModels(filters: $filter, ordering: $order, pagination: $pagination) {\n    ...LLMModel\n    __typename\n  }\n}'
+
+class MemoryIndexQuery(BaseModel):
+    """No documentation found for this operation."""
+    memories: tuple[MemoryIndexEntry, ...]
+    "What is remembered about the person who assigned the task this request is made for. Needs the task's provenance token"
+
+    class Arguments(BaseModel):
+        """Arguments for MemoryIndex """
+        limit: Annotated[int | None, GraphQLDefault('200')] = Field(default=None)
+
+    class Meta:
+        """Meta class for MemoryIndex """
+        document = 'fragment MemoryIndexEntry on Memory {\n  id\n  name\n  description\n  kind\n  __typename\n}\n\nquery MemoryIndex($limit: Int = 200) {\n  memories(pagination: {limit: $limit}, ordering: [{updatedAt: DESC}]) {\n    ...MemoryIndexEntry\n    __typename\n  }\n}'
+
+class RecallQuery(BaseModel):
+    """No documentation found for this operation."""
+    memories: tuple[Memory, ...]
+    "What is remembered about the person who assigned the task this request is made for. Needs the task's provenance token"
+
+    class Arguments(BaseModel):
+        """Arguments for Recall """
+        search: str | None = Field(default=None)
+        names: list[str] | None = Field(default=None)
+        limit: Annotated[int | None, GraphQLDefault('5')] = Field(default=None)
+
+    class Meta:
+        """Meta class for Recall """
+        document = 'fragment Memory on Memory {\n  id\n  name\n  description\n  content\n  kind\n  updatedAt\n  __typename\n}\n\nquery Recall($search: String, $names: [String!], $limit: Int = 5) {\n  memories(filters: {search: $search, names: $names}, pagination: {limit: $limit}) {\n    ...Memory\n    __typename\n  }\n}'
+
+class GetMemoryQuery(BaseModel):
+    """No documentation found for this operation."""
+    memory: Memory
+    "Get one of the assigner's memories by ID"
+
+    class Arguments(BaseModel):
+        """Arguments for GetMemory """
+        id: ID
+
+    class Meta:
+        """Meta class for GetMemory """
+        document = 'fragment Memory on Memory {\n  id\n  name\n  description\n  content\n  kind\n  updatedAt\n  __typename\n}\n\nquery GetMemory($id: ID!) {\n  memory(id: $id) {\n    ...Memory\n    __typename\n  }\n}'
+
+class AssignerQueryAssigner(BaseModel):
+    """A reflection on the real User"""
+    typename: Literal['User'] = Field(alias='__typename', default='User', exclude=True)
+    sub: str
+    preferred_username: str = Field(alias='preferredUsername')
+    name: str | None = Field(default=None)
+    'The full name, if the issuer sends one.'
+    model_config = ConfigDict(frozen=True)
+
+class AssignerQuery(BaseModel):
+    """No documentation found for this operation."""
+    assigner: AssignerQueryAssigner
+    'Who assigned the task this request is made for: whose memories it reaches'
+
+    class Arguments(BaseModel):
+        """Arguments for Assigner """
+        pass
+
+    class Meta:
+        """Meta class for Assigner """
+        document = 'query Assigner {\n  assigner {\n    sub\n    preferredUsername\n    name\n    __typename\n  }\n}'
 
 class GetMessageQuery(BaseModel):
     """No documentation found for this operation."""
@@ -1338,6 +1483,86 @@ Returns:
         _input['description'] = description
         variables['input'] = _input
         return self.execute(GenerateImageMutation, variables, task=task).generate_image
+
+    async def aremember(self, name: str, description: str, content: str, kind: MemoryKind, task: TaskLike | None=None) -> Memory:
+        """Remember 
+
+Remember something about the person who assigned the task, replacing the memory of that name. Needs the task's provenance token
+
+Args:
+    name: A short slug to find and replace the memory by: `prefers-tiff-exports`
+    description: One line saying what the memory holds, read in the index every turn
+    content: The memory itself
+    kind: What the memory is about
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
+
+Returns:
+    Memory
+"""
+        variables: dict[str, builtins.object] = {}
+        _input: dict[str, builtins.object] = {}
+        _input['name'] = name
+        _input['description'] = description
+        _input['content'] = content
+        _input['kind'] = kind
+        variables['input'] = _input
+        return (await self.aexecute(RememberMutation, variables, task=task)).remember
+
+    def remember(self, name: str, description: str, content: str, kind: MemoryKind, task: TaskLike | None=None) -> Memory:
+        """Remember 
+
+Remember something about the person who assigned the task, replacing the memory of that name. Needs the task's provenance token
+
+Args:
+    name: A short slug to find and replace the memory by: `prefers-tiff-exports`
+    description: One line saying what the memory holds, read in the index every turn
+    content: The memory itself
+    kind: What the memory is about
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
+
+Returns:
+    Memory
+"""
+        variables: dict[str, builtins.object] = {}
+        _input: dict[str, builtins.object] = {}
+        _input['name'] = name
+        _input['description'] = description
+        _input['content'] = content
+        _input['kind'] = kind
+        variables['input'] = _input
+        return self.execute(RememberMutation, variables, task=task).remember
+
+    async def aforget(self, name: str, task: TaskLike | None=None) -> bool:
+        """Forget 
+
+Forget one of the assigner's memories by name; whether there was one
+
+Args:
+    name (str): No description
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
+
+Returns:
+    bool
+"""
+        variables: dict[str, builtins.object] = {}
+        variables['name'] = name
+        return (await self.aexecute(ForgetMutation, variables, task=task)).forget
+
+    def forget(self, name: str, task: TaskLike | None=None) -> bool:
+        """Forget 
+
+Forget one of the assigner's memories by name; whether there was one
+
+Args:
+    name (str): No description
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
+
+Returns:
+    bool
+"""
+        variables: dict[str, builtins.object] = {}
+        variables['name'] = name
+        return self.execute(ForgetMutation, variables, task=task).forget
 
     async def asend(self, text: str, room: IDCoercible, agent_id: str, attach_structures: list[StructureInput] | None | UnsetType=UNSET, task: TaskLike | None=None) -> Message:
         """Send 
@@ -1970,6 +2195,146 @@ Returns:
         if pagination is not UNSET:
             variables['pagination'] = pagination
         return self.execute(ListLLModelsQuery, variables, task=task).llm_models
+
+    async def amemory_index(self, limit: int | None | UnsetType=UNSET, task: TaskLike | None=None) -> tuple[MemoryIndexEntry, ...]:
+        """MemoryIndex 
+
+What is remembered about the person who assigned the task this request is made for. Needs the task's provenance token
+
+Args:
+    limit (int | None, optional): No description. Defaults to 200
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
+
+Returns:
+    list[MemoryIndexEntry]
+"""
+        variables: dict[str, builtins.object] = {}
+        if limit is not UNSET:
+            variables['limit'] = limit
+        return (await self.aexecute(MemoryIndexQuery, variables, task=task)).memories
+
+    def memory_index(self, limit: int | None | UnsetType=UNSET, task: TaskLike | None=None) -> tuple[MemoryIndexEntry, ...]:
+        """MemoryIndex 
+
+What is remembered about the person who assigned the task this request is made for. Needs the task's provenance token
+
+Args:
+    limit (int | None, optional): No description. Defaults to 200
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
+
+Returns:
+    list[MemoryIndexEntry]
+"""
+        variables: dict[str, builtins.object] = {}
+        if limit is not UNSET:
+            variables['limit'] = limit
+        return self.execute(MemoryIndexQuery, variables, task=task).memories
+
+    async def arecall(self, search: str | None | UnsetType=UNSET, names: list[str] | None | UnsetType=UNSET, limit: int | None | UnsetType=UNSET, task: TaskLike | None=None) -> tuple[Memory, ...]:
+        """Recall 
+
+What is remembered about the person who assigned the task this request is made for. Needs the task's provenance token
+
+Args:
+    search (str | None, optional): No description. 
+    names (list[str] | None, optional): No description. 
+    limit (int | None, optional): No description. Defaults to 5
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
+
+Returns:
+    list[Memory]
+"""
+        variables: dict[str, builtins.object] = {}
+        if search is not UNSET:
+            variables['search'] = search
+        if names is not UNSET:
+            variables['names'] = names
+        if limit is not UNSET:
+            variables['limit'] = limit
+        return (await self.aexecute(RecallQuery, variables, task=task)).memories
+
+    def recall(self, search: str | None | UnsetType=UNSET, names: list[str] | None | UnsetType=UNSET, limit: int | None | UnsetType=UNSET, task: TaskLike | None=None) -> tuple[Memory, ...]:
+        """Recall 
+
+What is remembered about the person who assigned the task this request is made for. Needs the task's provenance token
+
+Args:
+    search (str | None, optional): No description. 
+    names (list[str] | None, optional): No description. 
+    limit (int | None, optional): No description. Defaults to 5
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
+
+Returns:
+    list[Memory]
+"""
+        variables: dict[str, builtins.object] = {}
+        if search is not UNSET:
+            variables['search'] = search
+        if names is not UNSET:
+            variables['names'] = names
+        if limit is not UNSET:
+            variables['limit'] = limit
+        return self.execute(RecallQuery, variables, task=task).memories
+
+    async def aget_memory(self, id: IDCoercible, task: TaskLike | None=None) -> Memory:
+        """GetMemory 
+
+Get one of the assigner's memories by ID
+
+Args:
+    id (ID): No description
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
+
+Returns:
+    Memory
+"""
+        variables: dict[str, builtins.object] = {}
+        variables['id'] = id
+        return (await self.aexecute(GetMemoryQuery, variables, task=task)).memory
+
+    def get_memory(self, id: IDCoercible, task: TaskLike | None=None) -> Memory:
+        """GetMemory 
+
+Get one of the assigner's memories by ID
+
+Args:
+    id (ID): No description
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
+
+Returns:
+    Memory
+"""
+        variables: dict[str, builtins.object] = {}
+        variables['id'] = id
+        return self.execute(GetMemoryQuery, variables, task=task).memory
+
+    async def aassigner(self, task: TaskLike | None=None) -> AssignerQueryAssigner:
+        """Assigner 
+
+Who assigned the task this request is made for: whose memories it reaches
+
+Args:
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
+
+Returns:
+    AssignerQueryAssigner
+"""
+        variables: dict[str, builtins.object] = {}
+        return (await self.aexecute(AssignerQuery, variables, task=task)).assigner
+
+    def assigner(self, task: TaskLike | None=None) -> AssignerQueryAssigner:
+        """Assigner 
+
+Who assigned the task this request is made for: whose memories it reaches
+
+Args:
+    task (rath.task.TaskLike, optional): The task this call is made for; the ambient one by default.
+
+Returns:
+    AssignerQueryAssigner
+"""
+        variables: dict[str, builtins.object] = {}
+        return self.execute(AssignerQuery, variables, task=task).assigner
 
     async def aget_message(self, id: IDCoercible, task: TaskLike | None=None) -> Message:
         """GetMessage 

@@ -1,0 +1,25 @@
+query MemoryIndex($limit: Int = 200) {
+  memories(pagination: { limit: $limit }, ordering: [{ updatedAt: DESC }]) {
+    ...MemoryIndexEntry
+  }
+}
+
+query Recall($search: String, $names: [String!], $limit: Int = 5) {
+  memories(filters: { search: $search, names: $names }, pagination: { limit: $limit }) {
+    ...Memory
+  }
+}
+
+query GetMemory($id: ID!) {
+  memory(id: $id) {
+    ...Memory
+  }
+}
+
+query Assigner {
+  assigner {
+    sub
+    preferredUsername
+    name
+  }
+}

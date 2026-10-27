@@ -1,0 +1,15 @@
+fragment Memory on Memory {
+  id
+  name
+  description
+  content
+  kind
+  updatedAt
+}
+
+fragment MemoryIndexEntry on Memory {
+  id
+  name
+  description
+  kind
+}

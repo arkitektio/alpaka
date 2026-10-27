@@ -1,0 +1,9 @@
+mutation Remember($input: MemoryInput!) {
+  remember(input: $input) {
+    ...Memory
+  }
+}
+
+mutation Forget($name: String!) {
+  forget(input: { name: $name })
+}

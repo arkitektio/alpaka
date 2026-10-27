@@ -132,3 +132,30 @@ async def test_oneof_order_variant_serializes_to_single_key() -> None:
         await client(rath).alist_rooms(order=[RoomOrderCreatedAt(created_at=Ordering.ASC)])
 
     assert captured["order"] == [{"createdAt": "ASC"}]
+
+
+async def test_remember_goes_out_with_the_tasks_token_and_parses_back() -> None:
+    """A memory is reached only through a task: the call carries its provenance token under the
+    task header, whatever else the app's login says."""
+    from rath.task import TASK_HEADER
+
+    from alpaka.api.schema import MemoryKind
+
+    captured: dict = {}
+
+    async def resolve_remember(operation: Operation) -> dict:
+        captured["variables"] = operation.variables
+        captured["headers"] = operation.context.headers
+        return {"id": "1", "name": "exports", "description": "How they export", "content": "OME-TIFF", "kind": "FEEDBACK", "updatedAt": "2026-10-27T12:00:00+00:00"}
+
+    class Task:
+        token = "signed-task-token"
+
+    async with AlpakaRath(link=AsyncMockLink(mutation_resolver={"remember": resolve_remember})) as rath:
+        memory = await client(rath).aremember(
+            name="exports", description="How they export", content="OME-TIFF", kind=MemoryKind.FEEDBACK, task=Task()
+        )
+
+    assert captured["variables"]["input"] == {"name": "exports", "description": "How they export", "content": "OME-TIFF", "kind": "FEEDBACK"}
+    assert captured["headers"][TASK_HEADER] == "signed-task-token"
+    assert (memory.name, memory.kind) == ("exports", MemoryKind.FEEDBACK)
