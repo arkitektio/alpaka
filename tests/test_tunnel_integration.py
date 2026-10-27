@@ -4,13 +4,6 @@ Drives the real ``openai`` SDK against the composed alpaka server's
 ``/llm/v1`` endpoint with the stack's static token -- the exact wiring the
 client's ``alpaka.openai`` property builds in production (``deployed_app.alpaka.openai``
 is the same, over the fixture's static token loader).
-
-Marked ``xfail(strict=False)``: the pulled ``jhnnsrs/alpaka:next`` image may
-predate the REST auth fix (the missing ``await`` in
-``llm.views.authenticate_request``, fixed 2026-09-01), in which case every
-request 401s. It xpasses against a local server checkout (see
-``docker-compose.local.yml``), which proves the source but not the image --
-drop the marker once the *published* image passes it.
 """
 
 import pytest
@@ -30,10 +23,6 @@ def _tunnel_base_url(deployed_app: DeployedAlpaka) -> str:
 
 
 @pytest.mark.integration
-@pytest.mark.xfail(
-    strict=False,
-    reason="the published alpaka image may predate the REST auth await fix (2026-09-01); xpasses against a local checkout",
-)
 def test_models_endpoint_speaks_openai_wire(deployed_app: DeployedAlpaka) -> None:
     """``client.models.list()`` authenticates with the static token and parses."""
     client = openai_sdk.OpenAI(
