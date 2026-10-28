@@ -742,108 +742,108 @@ enum Modality {
 """The root mutation type"""
 type Mutation {
   """Create an empty collaboration, to put rooms in and grant a guest"""
-  createCollaboration(input: CreateCollaborationInput!): Collaboration! @auth(any_role_of: ["admin", "editor"])
+  createCollaboration(input: CreateCollaborationInput!): Collaboration! @auth(required_scopes: ["alpaka_share"], any_role_of: ["alpaka_editor"])
 
   """
   Put a room or a message in a collaboration, with what it needs to be seen: a room comes with its agents and messages
   """
-  addToCollaboration(input: CollaborationObjectInput!): Collaboration! @auth(any_role_of: ["admin", "editor"])
+  addToCollaboration(input: CollaborationObjectInput!): Collaboration! @auth(required_scopes: ["alpaka_share"], any_role_of: ["alpaka_editor"])
 
   """
   Take a room or a message out of a collaboration, with what it brought that nothing else there needs
   """
-  removeFromCollaboration(input: CollaborationObjectInput!): Collaboration! @auth(any_role_of: ["admin", "editor"])
+  removeFromCollaboration(input: CollaborationObjectInput!): Collaboration! @auth(required_scopes: ["alpaka_share"], any_role_of: ["alpaka_editor"])
 
   """
   Delete a collaboration: whoever was granted it sees nothing of it any more
   """
-  deleteCollaboration(id: ID!): ID! @auth(any_role_of: ["admin", "editor"])
+  deleteCollaboration(id: ID!): ID! @auth(required_scopes: ["alpaka_share"], any_role_of: ["alpaka_editor"])
 
   """Open a new room"""
-  createRoom(input: CreateRoomInput!): Room!
+  createRoom(input: CreateRoomInput!): Room! @auth(required_scopes: ["alpaka_write"], any_role_of: ["alpaka_editor"])
 
   """Delete a room and its messages"""
-  deleteRoom(input: DeleteRoomInput!): ID!
+  deleteRoom(input: DeleteRoomInput!): ID! @auth(required_scopes: ["alpaka_write"], any_role_of: ["alpaka_editor"])
 
   """Post a complete message into a room"""
-  send(input: SendMessageInput!): Message! @auth(allow_scoped: true)
+  send(input: SendMessageInput!): Message! @auth(required_scopes: ["alpaka_chat"], any_role_of: ["alpaka_editor"], allow_scoped: true)
 
   """
   Open a message to stream text into. Only the starting agent (same user and client) can append to or finish it.
   """
-  startMessage(input: StartMessageInput!): Message!
+  startMessage(input: StartMessageInput!): Message! @auth(required_scopes: ["alpaka_chat"], any_role_of: ["alpaka_editor"])
 
   """
   Append a delta to a streaming message. Batch deltas (every ~100-250 ms or ~30 characters) and await each call before sending the next, so they arrive in order.
   """
-  appendMessage(input: AppendMessageInput!): Message!
+  appendMessage(input: AppendMessageInput!): Message! @auth(required_scopes: ["alpaka_chat"], any_role_of: ["alpaka_editor"])
 
   """
   Close a streaming message. Pass the full final text so any delta lost on the way is repaired; call it in a finally block so a crashed stream never stays open.
   """
-  finishMessage(input: FinishMessageInput!): Message!
+  finishMessage(input: FinishMessageInput!): Message! @auth(required_scopes: ["alpaka_chat"], any_role_of: ["alpaka_editor"])
 
   """Configure a new LLM provider and list the models it offers"""
-  createProvider(input: ProviderInput!): Provider!
+  createProvider(input: ProviderInput!): Provider! @auth(required_scopes: ["alpaka_providers"], any_role_of: ["alpaka_manager"])
 
   """Update a provider in place, e.g. to rotate its credential"""
-  updateProvider(input: UpdateProviderInput!): Provider!
+  updateProvider(input: UpdateProviderInput!): Provider! @auth(required_scopes: ["alpaka_providers"], any_role_of: ["alpaka_manager"])
 
   """Re-list the models a provider offers"""
-  refreshProvider(input: RefreshProviderInput!): Provider!
+  refreshProvider(input: RefreshProviderInput!): Provider! @auth(required_scopes: ["alpaka_providers"], any_role_of: ["alpaka_manager"])
 
   """Delete a provider and the models it offers"""
-  deleteProvider(input: DeleteProviderInput!): ID!
+  deleteProvider(input: DeleteProviderInput!): ID! @auth(required_scopes: ["alpaka_providers"], any_role_of: ["alpaka_manager"])
 
   """
   Pull a model into an Ollama provider, or a decision model into an Ollaya provider
   """
-  pull(input: PullInput!): OllamaPullResult!
+  pull(input: PullInput!): OllamaPullResult! @auth(required_scopes: ["alpaka_providers"], any_role_of: ["alpaka_manager"])
 
   """Register a model as the caller's default for a kind of task"""
-  useModelFor(input: UseModelForInput!): DefaultUse!
+  useModelFor(input: UseModelForInput!): DefaultUse! @auth(required_scopes: ["alpaka_write"], any_role_of: ["alpaka_editor"])
 
   """
   Cap this organization's LLM consumption, optionally for one user and/or model
   """
-  createBudget(input: CreateBudgetInput!): Budget!
+  createBudget(input: CreateBudgetInput!): Budget! @auth(required_scopes: ["alpaka_providers"], any_role_of: ["alpaka_manager"])
 
   """Change a budget's period, limits or hardness"""
-  updateBudget(input: UpdateBudgetInput!): Budget!
+  updateBudget(input: UpdateBudgetInput!): Budget! @auth(required_scopes: ["alpaka_providers"], any_role_of: ["alpaka_manager"])
 
   """Remove a budget"""
-  deleteBudget(input: DeleteBudgetInput!): ID!
+  deleteBudget(input: DeleteBudgetInput!): ID! @auth(required_scopes: ["alpaka_providers"], any_role_of: ["alpaka_manager"])
 
   """Send a chat completion request"""
-  chat(input: ChatInput!): ChatResponse!
+  chat(input: ChatInput!): ChatResponse! @auth(required_scopes: ["alpaka_chat"], any_role_of: ["alpaka_editor"])
 
   """Generate an image from a text description"""
-  generateImage(input: ImageInput!): ImageResponse!
+  generateImage(input: ImageInput!): ImageResponse! @auth(required_scopes: ["alpaka_chat"], any_role_of: ["alpaka_editor"])
 
   """
   Ask a decision model typed questions (noul, choice, score) about one state, and get calibrated answers
   """
-  decide(input: DecideInput!): Decision!
+  decide(input: DecideInput!): Decision! @auth(required_scopes: ["alpaka_chat"], any_role_of: ["alpaka_editor"])
 
   """Create a searchable collection of documents"""
-  createCollection(input: ChromaCollectionInput!): ChromaCollection!
+  createCollection(input: ChromaCollectionInput!): ChromaCollection! @auth(required_scopes: ["alpaka_write"], any_role_of: ["alpaka_editor"])
 
   """Create a collection, or update it if it already exists"""
-  ensureCollection(input: ChromaCollectionInput!): ChromaCollection!
+  ensureCollection(input: ChromaCollectionInput!): ChromaCollection! @auth(required_scopes: ["alpaka_write"], any_role_of: ["alpaka_editor"])
 
   """Delete a collection and its documents"""
-  deleteCollection(input: DeleteCollectionInput!): ID!
+  deleteCollection(input: DeleteCollectionInput!): ID! @auth(required_scopes: ["alpaka_write"], any_role_of: ["alpaka_editor"])
 
   """Embed documents and add them to a collection"""
-  addDocumentsToCollection(input: AddDocumentsToCollectionInput!): [Document!]!
+  addDocumentsToCollection(input: AddDocumentsToCollectionInput!): [Document!]! @auth(required_scopes: ["alpaka_write"], any_role_of: ["alpaka_editor"])
 
   """
   Remember something about the person who assigned the task, replacing the memory of that name. Needs the task's provenance token
   """
-  remember(input: MemoryInput!): Memory!
+  remember(input: MemoryInput!): Memory! @auth(required_scopes: ["alpaka_write"], any_role_of: ["alpaka_editor"])
 
   """Forget one of the assigner's memories by name; whether there was one"""
-  forget(input: ForgetInput!): Boolean!
+  forget(input: ForgetInput!): Boolean! @auth(required_scopes: ["alpaka_write"], any_role_of: ["alpaka_editor"])
 }
 
 """The answer to a yes/no question"""
@@ -996,82 +996,82 @@ type Query {
   """
   List the organization's collaborations: what a guest granted one sees of it (a guest: the collaborations granted to them)
   """
-  collaborations: [Collaboration!]!
+  collaborations: [Collaboration!]! @auth(required_scopes: ["alpaka_read"])
 
   """Get a single collaboration by ID"""
-  collaboration(id: ID!): Collaboration!
+  collaboration(id: ID!): Collaboration! @auth(required_scopes: ["alpaka_read"])
 
   """List the rooms in this organization"""
-  rooms(filters: RoomFilter, ordering: [RoomOrder!]! = [], pagination: OffsetPaginationInput): [Room!]!
+  rooms(filters: RoomFilter, ordering: [RoomOrder!]! = [], pagination: OffsetPaginationInput): [Room!]! @auth(required_scopes: ["alpaka_read"])
 
   """Aggregate statistics over this organization's rooms"""
-  roomStats(filters: RoomFilter = null): RoomStats!
+  roomStats(filters: RoomFilter = null): RoomStats! @auth(required_scopes: ["alpaka_read"])
 
   """List the messages in this organization's rooms"""
-  messages(filters: MessageFilter, ordering: [MessageOrder!]! = [], pagination: OffsetPaginationInput): [Message!]!
+  messages(filters: MessageFilter, ordering: [MessageOrder!]! = [], pagination: OffsetPaginationInput): [Message!]! @auth(required_scopes: ["alpaka_read"])
 
   """List the LLM providers configured for this organization"""
-  providers(filters: ProviderFilter, ordering: [ProviderOrder!]! = [], pagination: OffsetPaginationInput): [Provider!]!
+  providers(filters: ProviderFilter, ordering: [ProviderOrder!]! = [], pagination: OffsetPaginationInput): [Provider!]! @auth(required_scopes: ["alpaka_read"])
 
   """List the LLM models reachable through this organization's providers"""
-  llmModels(filters: LLMModelFilter, ordering: [LLMModelOrder!]! = [], pagination: OffsetPaginationInput): [LLMModel!]!
+  llmModels(filters: LLMModelFilter, ordering: [LLMModelOrder!]! = [], pagination: OffsetPaginationInput): [LLMModel!]! @auth(required_scopes: ["alpaka_read"])
 
   """The models the caller has registered as defaults"""
-  defaultUses(filters: DefaultUseFilter, ordering: [DefaultUseOrder!]! = [], pagination: OffsetPaginationInput): [DefaultUse!]!
+  defaultUses(filters: DefaultUseFilter, ordering: [DefaultUseOrder!]! = [], pagination: OffsetPaginationInput): [DefaultUse!]! @auth(required_scopes: ["alpaka_read"])
 
   """This organization's recorded LLM calls"""
-  usageRecords(filters: UsageRecordFilter, ordering: [UsageRecordOrder!]! = [], pagination: OffsetPaginationInput): [UsageRecord!]!
+  usageRecords(filters: UsageRecordFilter, ordering: [UsageRecordOrder!]! = [], pagination: OffsetPaginationInput): [UsageRecord!]! @auth(required_scopes: ["alpaka_read"])
 
   """
   Aggregate token, cost and latency statistics over this organization's LLM calls
   """
-  usageStats(filters: UsageRecordFilter = null): UsageStats!
+  usageStats(filters: UsageRecordFilter = null): UsageStats! @auth(required_scopes: ["alpaka_read"])
 
   """This organization's budgets"""
-  budgets(filters: BudgetFilter, ordering: [BudgetOrder!]! = [], pagination: OffsetPaginationInput): [Budget!]!
+  budgets(filters: BudgetFilter, ordering: [BudgetOrder!]! = [], pagination: OffsetPaginationInput): [Budget!]! @auth(required_scopes: ["alpaka_read"])
 
   """List this organization's Chroma collections"""
-  chromaCollections(filters: ChromaCollectionFilter, ordering: [ChromaCollectionOrder!]! = [], pagination: OffsetPaginationInput): [ChromaCollection!]!
+  chromaCollections(filters: ChromaCollectionFilter, ordering: [ChromaCollectionOrder!]! = [], pagination: OffsetPaginationInput): [ChromaCollection!]! @auth(required_scopes: ["alpaka_read"])
 
   """
   What is remembered about the person who assigned the task this request is made for. Needs the task's provenance token
   """
-  memories(filters: MemoryFilter, ordering: [MemoryOrder!]! = [], pagination: OffsetPaginationInput): [Memory!]!
+  memories(filters: MemoryFilter, ordering: [MemoryOrder!]! = [], pagination: OffsetPaginationInput): [Memory!]! @auth(required_scopes: ["alpaka_read"])
 
   """Get a single room by ID"""
-  room(id: ID!): Room!
+  room(id: ID!): Room! @auth(required_scopes: ["alpaka_read"])
 
   """Get a single message by ID"""
-  message(id: ID!): Message!
+  message(id: ID!): Message! @auth(required_scopes: ["alpaka_read"])
 
   """Get a single provider by ID"""
-  provider(id: ID!): Provider!
+  provider(id: ID!): Provider! @auth(required_scopes: ["alpaka_read"])
 
   """Get a single LLM model by ID"""
-  llmModel(id: ID!): LLMModel!
+  llmModel(id: ID!): LLMModel! @auth(required_scopes: ["alpaka_read"])
 
   """The model the caller uses by default for one kind of task, if any"""
-  defaultModelFor(kind: DefaultKind!): LLMModel
+  defaultModelFor(kind: DefaultKind!): LLMModel @auth(required_scopes: ["alpaka_read"])
 
   """Get a single budget by ID"""
-  budget(id: ID!): Budget!
+  budget(id: ID!): Budget! @auth(required_scopes: ["alpaka_read"])
 
   """How much of a budget is used in the current period"""
-  budgetStatus(id: ID!): BudgetStatus!
+  budgetStatus(id: ID!): BudgetStatus! @auth(required_scopes: ["alpaka_read"])
 
   """Get a single Chroma collection by ID"""
-  chromaCollection(id: ID!): ChromaCollection!
+  chromaCollection(id: ID!): ChromaCollection! @auth(required_scopes: ["alpaka_read"])
 
   """Search a collection for the documents most similar to some text"""
-  documents(input: QueryInput!): [Document!]!
+  documents(input: QueryInput!): [Document!]! @auth(required_scopes: ["alpaka_read"])
 
   """Get one of the assigner's memories by ID"""
-  memory(id: ID!): Memory!
+  memory(id: ID!): Memory! @auth(required_scopes: ["alpaka_read"])
 
   """
   Who assigned the task this request is made for: whose memories it reaches
   """
-  assigner: User!
+  assigner: User! @auth(required_scopes: ["alpaka_read"])
 }
 
 """A similarity query against a collection"""
@@ -1296,7 +1296,7 @@ type Subscription {
   """
   Join a room and receive its events: messages created, streamed into and finished, and agents joining or leaving
   """
-  room(room: ID!, agentId: ID!, filterOwn: Boolean! = true): RoomEvent!
+  room(room: ID!, agentId: ID!, filterOwn: Boolean! = true): RoomEvent! @auth(required_scopes: ["alpaka_read"])
 }
 
 type ThinkingBlock {

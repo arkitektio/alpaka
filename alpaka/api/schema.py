@@ -2639,6 +2639,7 @@ Returns:
             variables['filterOwn'] = filter_own
         for event in self.subscribe(WatchRoomSubscription, variables, task=task):
             yield event.room
+SCOPES: list[str] = ['alpaka_chat', 'alpaka_providers', 'alpaka_read', 'alpaka_write']
 AddDocumentsToCollectionInput.model_rebuild()
 ChatInput.model_rebuild()
 ChatMessageInput.model_rebuild()
