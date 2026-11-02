@@ -4,7 +4,7 @@ from dokker import Deployment, testing
 from dokker.log_watcher import LogWatcher
 import os
 import socket
-from typing import Generator
+from collections.abc import Generator
 from alpaka.alpaka import Alpaka
 from rath.links.auth import ComposedAuthLink
 from rath.links.aiohttp import AIOHttpLink

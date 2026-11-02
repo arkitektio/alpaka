@@ -21,7 +21,8 @@ full text is sent with the finish so a delta lost on the way is repaired.
 import asyncio
 import time
 from contextlib import asynccontextmanager
-from typing import TYPE_CHECKING, Any, AsyncIterator, Optional
+from typing import TYPE_CHECKING, Any
+from collections.abc import AsyncIterator
 
 from alpaka.api.schema import UNSET, ListMessage, StructureInput
 
@@ -98,7 +99,7 @@ async def stream_into_room(
     *,
     room: Any,
     agent_id: str,
-    parent: Optional[Any] = None,
+    parent: Any | None = None,
     text: str = "",
     flush_chars: int = FLUSH_CHARS,
     flush_interval: float = FLUSH_INTERVAL_SECONDS,

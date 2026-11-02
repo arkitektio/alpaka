@@ -4,7 +4,8 @@ No server: the rath is a fake returning canned data, or an ``AsyncMockLink``.
 """
 
 from types import SimpleNamespace
-from typing import Any, AsyncIterator, Optional
+from typing import Any
+from collections.abc import AsyncIterator
 
 import pytest
 from pydantic import BaseModel, ConfigDict
@@ -63,7 +64,7 @@ class GetRoom(BaseModel):
 
     class Arguments(BaseModel):
         id: str
-        note: Optional[str] = None
+        note: str | None = None
 
     class Meta:
         document = "query GetRoom($id: ID!) { room(id: $id) { id agent { id } } }"

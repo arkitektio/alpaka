@@ -55,6 +55,13 @@ include = ["alpaka"]
 [tool.hatch.build.targets.wheel]
 include = ["alpaka"]
 
+
+[tool.ruff.lint]
+extend-select = ["UP"]
+extend-ignore = ["UP037", "UP038", "UP042"]
+
+[tool.ruff.lint.per-file-ignores]
+"alpaka/api/schema.py" = ["UP035"]
 [build-system]
 requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"

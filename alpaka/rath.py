@@ -1,5 +1,4 @@
 from types import TracebackType
-from typing import Optional, Type
 from pydantic import Field
 from rath import rath
 
@@ -36,8 +35,8 @@ class AlpakaRath(rath.Rath):
 
     async def __aexit__(
         self,
-        exc_type: Optional[Type[BaseException]],
-        exc_val: Optional[BaseException],
-        traceback: Optional[TracebackType],
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        traceback: TracebackType | None,
     ) -> None:
         await super().__aexit__(exc_type, exc_val, traceback)
