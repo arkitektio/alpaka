@@ -24,6 +24,9 @@ authentikate:
     test:
       sub: 1
       iss: lok
+      # alpaka asks every root field for a scope and every write for a role.
+      scope: openid alpaka_all
+      roles: [alpaka_admin]
 redis:
   dependency: redis
   host: redis
