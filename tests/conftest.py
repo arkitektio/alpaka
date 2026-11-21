@@ -1,3 +1,4 @@
+from arkitekt_spec.declare.tested import record_tested
 import sys
 import pytest
 from dokker import Deployment, testing
@@ -177,6 +178,8 @@ def deployed_app(integration_ports: dict[str, int]) -> Generator[DeployedAlpaka,
         setup.run("initc", command="python init.py")
 
         setup.check_health()
+        # What a release of this client then says it was tested against.
+        record_tested("alpaka", http_url.rsplit("/graphql", 1)[0] + "/ht")
 
         with alpaka as alpaka:
             deployed = DeployedAlpaka(
