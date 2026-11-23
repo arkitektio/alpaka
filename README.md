@@ -82,7 +82,7 @@ can tunnel too:
 ```python
 endpoint = alpaka.get_endpoint()
 print(endpoint.base_url)  # .../llm/v1
-print(endpoint.api_key)   # your current arkitekt token (expires!)
+print(endpoint.api_key)  # your current arkitekt token (expires!)
 ```
 
 Model names accept `provider/model-id`, a bare registry `model-id`, a database

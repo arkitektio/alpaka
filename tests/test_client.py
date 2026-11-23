@@ -3,9 +3,9 @@
 No server: the rath is a fake returning canned data, or an ``AsyncMockLink``.
 """
 
+from collections.abc import AsyncIterator
 from types import SimpleNamespace
 from typing import Any
-from collections.abc import AsyncIterator
 
 import pytest
 from pydantic import BaseModel, ConfigDict
@@ -114,7 +114,13 @@ async def test_unset_arguments_stay_off_the_wire() -> None:
 
 
 def test_every_operation_is_a_method_and_the_client_has_only_its_fields() -> None:
-    assert set(Alpaka.model_fields) == {"rath", "llm_url", "tokens", "proxy", "ssl_context"}
+    assert set(Alpaka.model_fields) == {
+        "rath",
+        "llm_url",
+        "tokens",
+        "proxy",
+        "ssl_context",
+    }
     for name in ("aget_room", "get_room", "achat", "astart_message", "awatch_room"):
         assert callable(getattr(Alpaka, name))
 
@@ -158,11 +164,15 @@ async def test_stream_into_room_writes_through_the_client_it_is_given() -> None:
             return resolve
 
         kinds = ("startMessage", "appendMessage", "finishMessage")
-        return AlpakaRath(link=AsyncMockLink(mutation_resolver={k: answer(k) for k in kinds}))
+        return AlpakaRath(
+            link=AsyncMockLink(mutation_resolver={k: answer(k) for k in kinds})
+        )
 
     a, b = client(recording("a")), client(recording("b"))
     async with a.rath, b.rath:
-        async with stream_into_room(a, room="3", agent_id="assistant", flush_chars=1) as reply:
+        async with stream_into_room(
+            a, room="3", agent_id="assistant", flush_chars=1
+        ) as reply:
             assert reply.client is a
             await reply.append("hello")
 
@@ -173,9 +183,6 @@ def test_stream_into_room_needs_a_client() -> None:
     """There is no ambient fallback: the client is a required positional argument."""
     with pytest.raises(TypeError):
         stream_into_room(room="3", agent_id="assistant")  # type: ignore[call-arg]
-
-
-
 
 
 @pytest.mark.asyncio
@@ -203,6 +210,8 @@ async def test_a_task_named_at_the_call_beats_the_ambient_one() -> None:
 
     base = Alpaka.model_construct(rath=FakeRath())
     with task_scope(SimpleNamespace(token="ambient")):
-        await base.aexecute(GetRoom, {"id": "r"}, task=SimpleNamespace(token="explicit"))
+        await base.aexecute(
+            GetRoom, {"id": "r"}, task=SimpleNamespace(token="explicit")
+        )
 
     assert base.rath.headers == [{TASK_HEADER: "explicit"}]

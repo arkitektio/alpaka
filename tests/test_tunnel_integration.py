@@ -25,9 +25,7 @@ def _tunnel_base_url(deployed_app: DeployedAlpaka) -> str:
 @pytest.mark.integration
 def test_models_endpoint_speaks_openai_wire(deployed_app: DeployedAlpaka) -> None:
     """``client.models.list()`` authenticates with the static token and parses."""
-    client = openai_sdk.OpenAI(
-        base_url=_tunnel_base_url(deployed_app), api_key="test"
-    )
+    client = openai_sdk.OpenAI(base_url=_tunnel_base_url(deployed_app), api_key="test")
     models = client.models.list()
     assert models.object == "list"
 

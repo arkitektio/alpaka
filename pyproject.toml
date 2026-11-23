@@ -25,8 +25,8 @@ dependencies = [
 openai = ["openai>=1.30", "httpx>=0.27", "fakts>=6.1"]
 
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     # The tunnel's optional runtime deps, present in dev so its unit tests
     # (tests/test_tunnel.py) and the SDK integration test actually run.
     "openai>=1.30",
@@ -39,15 +39,10 @@ dev-dependencies = [
     "pytest-cov>=5.0.0,<6",
     "testcontainers==3.7.0",
     "python-semantic-release>=9.21.1",
-    "ruff>0.11",
+    "ruff==0.17.6",
     "turms>=3.0",
-    "basedpyright>=1.21",
+    "basedpyright==1.40.2",
 ]
-
-[tool.basedpyright]
-include = ["alpaka"]
-exclude = ["**/__pycache__", "tests"]
-typeCheckingMode = "standard"
 
 # `_tested.json` is written by the integration tests (the server version they ran against)
 # and is not in git: named as an artifact, on both, it is shipped all the same.
@@ -59,13 +54,6 @@ artifacts = ["alpaka/_tested.json"]
 include = ["alpaka"]
 artifacts = ["alpaka/_tested.json"]
 
-
-[tool.ruff.lint]
-extend-select = ["UP"]
-extend-ignore = ["UP037", "UP038", "UP042"]
-
-[tool.ruff.lint.per-file-ignores]
-"alpaka/api/schema.py" = ["UP035"]
 [build-system]
 requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"

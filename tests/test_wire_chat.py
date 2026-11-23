@@ -13,6 +13,7 @@ from typing import Any
 from rath.links.testing.mock import AsyncMockLink
 from rath.operation import Operation
 
+from alpaka.alpaka import Alpaka
 from alpaka.api.schema import (
     ChatMessageInput,
     Ordering,
@@ -20,7 +21,6 @@ from alpaka.api.schema import (
     RoomOrderCreatedAt,
     ThinkingBlockType,
 )
-from alpaka.alpaka import Alpaka
 from alpaka.rath import AlpakaRath
 
 from .conftest import StaticTokens
@@ -29,7 +29,6 @@ from .conftest import StaticTokens
 def client(rath: AlpakaRath) -> Alpaka:
     """An Alpaka over the given rath, with a static tunnel endpoint."""
     return Alpaka(rath=rath, llm_url="http://testserver/llm/v1", tokens=StaticTokens())
-
 
 
 def chat_payload(**choice_overrides: Any) -> dict:
@@ -59,7 +58,9 @@ async def test_chat_serializes_camel_case_and_omits_unset() -> None:
         captured.update(operation.variables)
         return chat_payload()
 
-    async with AlpakaRath(link=AsyncMockLink(mutation_resolver={"chat": resolve_chat})) as rath:
+    async with AlpakaRath(
+        link=AsyncMockLink(mutation_resolver={"chat": resolve_chat})
+    ) as rath:
         await client(rath).achat(
             messages=[ChatMessageInput(role=Role.USER, content="hi")],
             max_tokens=5,
@@ -96,13 +97,18 @@ async def test_chat_response_parses_tools_thinking_and_usage() -> None:
                     {
                         "id": "call_1",
                         "type": "FUNCTION",
-                        "function": {"name": "get_weather", "arguments": '{"city": "x"}'},
+                        "function": {
+                            "name": "get_weather",
+                            "arguments": '{"city": "x"}',
+                        },
                     }
                 ],
             },
         )
 
-    async with AlpakaRath(link=AsyncMockLink(mutation_resolver={"chat": resolve_chat})) as rath:
+    async with AlpakaRath(
+        link=AsyncMockLink(mutation_resolver={"chat": resolve_chat})
+    ) as rath:
         response = await client(rath).achat(
             messages=[ChatMessageInput(role=Role.USER, content="hi")]
         )
@@ -128,8 +134,12 @@ async def test_oneof_order_variant_serializes_to_single_key() -> None:
         captured.update(operation.variables)
         return []
 
-    async with AlpakaRath(link=AsyncMockLink(query_resolver={"rooms": resolve_rooms})) as rath:
-        await client(rath).alist_rooms(order=[RoomOrderCreatedAt(created_at=Ordering.ASC)])
+    async with AlpakaRath(
+        link=AsyncMockLink(query_resolver={"rooms": resolve_rooms})
+    ) as rath:
+        await client(rath).alist_rooms(
+            order=[RoomOrderCreatedAt(created_at=Ordering.ASC)]
+        )
 
     assert captured["order"] == [{"createdAt": "ASC"}]
 
@@ -146,16 +156,34 @@ async def test_remember_goes_out_with_the_tasks_token_and_parses_back() -> None:
     async def resolve_remember(operation: Operation) -> dict:
         captured["variables"] = operation.variables
         captured["headers"] = operation.context.headers
-        return {"id": "1", "name": "exports", "description": "How they export", "content": "OME-TIFF", "kind": "FEEDBACK", "updatedAt": "2026-10-27T12:00:00+00:00"}
+        return {
+            "id": "1",
+            "name": "exports",
+            "description": "How they export",
+            "content": "OME-TIFF",
+            "kind": "FEEDBACK",
+            "updatedAt": "2026-10-27T12:00:00+00:00",
+        }
 
     class Task:
         token = "signed-task-token"
 
-    async with AlpakaRath(link=AsyncMockLink(mutation_resolver={"remember": resolve_remember})) as rath:
+    async with AlpakaRath(
+        link=AsyncMockLink(mutation_resolver={"remember": resolve_remember})
+    ) as rath:
         memory = await client(rath).aremember(
-            name="exports", description="How they export", content="OME-TIFF", kind=MemoryKind.FEEDBACK, task=Task()
+            name="exports",
+            description="How they export",
+            content="OME-TIFF",
+            kind=MemoryKind.FEEDBACK,
+            task=Task(),
         )
 
-    assert captured["variables"]["input"] == {"name": "exports", "description": "How they export", "content": "OME-TIFF", "kind": "FEEDBACK"}
+    assert captured["variables"]["input"] == {
+        "name": "exports",
+        "description": "How they export",
+        "content": "OME-TIFF",
+        "kind": "FEEDBACK",
+    }
     assert captured["headers"][TASK_HEADER] == "signed-task-token"
     assert (memory.name, memory.kind) == ("exports", MemoryKind.FEEDBACK)

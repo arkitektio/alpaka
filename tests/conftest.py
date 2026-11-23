@@ -1,23 +1,25 @@
-from arkitekt_spec.declare.tested import record_tested
-import sys
-import pytest
-from dokker import Deployment, testing
-from dokker.log_watcher import LogWatcher
 import os
 import socket
+import sys
 from collections.abc import Generator
-from alpaka.alpaka import Alpaka
-from rath.links.auth import ComposedAuthLink
+from dataclasses import dataclass
+
+import pytest
+from arkitekt_spec.declare.tested import record_tested
+from dokker import Deployment, testing
+from dokker.log_watcher import LogWatcher
 from rath.links.aiohttp import AIOHttpLink
+from rath.links.auth import ComposedAuthLink
+from rath.links.compose import compose
 from rath.links.graphql_ws import GraphQLWSLink
 from rath.links.timeout import TimeoutLink
-from rath.links.compose import compose
+
+from alpaka.alpaka import Alpaka
 from alpaka.rath import (
     AlpakaRath,
     SplitLink,
 )
 from graphql import OperationType
-from dataclasses import dataclass
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -41,7 +43,9 @@ docker_compose_file = os.path.join(project_path, "docker-compose.yml")
 #: /workspace, so the suite can test server changes that are not published yet.
 #: See tests/integration/docker-compose.local.yml.
 local_override_file = os.path.join(project_path, "docker-compose.local.yml")
-compose_files = [docker_compose_file] + ([local_override_file] if os.path.exists(local_override_file) else [])
+compose_files = [docker_compose_file] + (
+    [local_override_file] if os.path.exists(local_override_file) else []
+)
 
 
 def _reserve_free_ports(count: int) -> list[int]:
@@ -117,14 +121,18 @@ class DeployedAlpaka:
 
 
 @pytest.fixture(scope="session")
-def deployed_app(integration_ports: dict[str, int]) -> Generator[DeployedAlpaka, None, None]:
+def deployed_app(
+    integration_ports: dict[str, int],
+) -> Generator[DeployedAlpaka, None, None]:
     """Fixture to deploy the Kraph application using Docker Compose."""
     # testing(): a per-run `dokker-test-<hash>` project that is torn down on
     # exit, so concurrent or crashed runs (and sibling repos, which all name
     # their stack `integration`) never share containers.
     setup = testing(compose_files)
     setup.add_health_check(
-        url=lambda spec: f"http://localhost:{spec.find_service('alpaka').get_port_for_internal(80).published}/graphql",
+        url=lambda spec: (
+            f"http://localhost:{spec.find_service('alpaka').get_port_for_internal(80).published}/graphql"
+        ),
         service="alpaka",
         timeout=5,
         # dokker sleeps `timeout` seconds between attempts: 20 x 5 s covers a

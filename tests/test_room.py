@@ -121,7 +121,9 @@ def test_order_rooms_by_title(alpaka: Alpaka) -> None:
 def test_search_rooms_respects_limit(alpaka: Alpaka) -> None:
     """The search limit caps the number of returned options."""
     for index in range(3):
-        alpaka.create_room(title=f"Limitsearch Room {index}", description="Limited search.")
+        alpaka.create_room(
+            title=f"Limitsearch Room {index}", description="Limited search."
+        )
 
     options = alpaka.search_rooms(search="Limitsearch", limit=2)
     assert len(options) <= 2
@@ -131,7 +133,9 @@ def test_search_rooms_respects_limit(alpaka: Alpaka) -> None:
 def test_search_rooms_offset_paginates(alpaka: Alpaka) -> None:
     """Offset skips earlier search results so pages do not overlap."""
     for index in range(4):
-        alpaka.create_room(title=f"Offsetsearch Room {index}", description="Paged search.")
+        alpaka.create_room(
+            title=f"Offsetsearch Room {index}", description="Paged search."
+        )
 
     first_page = alpaka.search_rooms(search="Offsetsearch", limit=2, offset=0)
     second_page = alpaka.search_rooms(search="Offsetsearch", limit=2, offset=2)

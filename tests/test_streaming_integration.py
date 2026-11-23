@@ -17,11 +17,9 @@ import threading
 import pytest
 
 from alpaka.alpaka import Alpaka
-
 from alpaka.api.schema import (
     RoomEventKind,
 )
-
 
 
 @pytest.mark.integration
@@ -63,7 +61,9 @@ def test_a_subscriber_sees_created_updated_finished(alpaka: Alpaka) -> None:
     # copy_context, because the koil loop the composition runs on lives in a
     # contextvar and a bare thread starts with an empty context ("No koil context
     # found"). This is what any sync consumer subscribing off the main thread needs.
-    listener = threading.Thread(target=contextvars.copy_context().run, args=(listen,), daemon=True)
+    listener = threading.Thread(
+        target=contextvars.copy_context().run, args=(listen,), daemon=True
+    )
     listener.start()
 
     # The subscription must be registered with the room's group before the first
@@ -101,6 +101,8 @@ def test_a_subscriber_sees_created_updated_finished(alpaka: Alpaka) -> None:
     stop.set()
 
     assert created.kind == RoomEventKind.MESSAGE_CREATED
-    assert updated.kind == RoomEventKind.MESSAGE_UPDATED and updated.message.text == "hi"
+    assert (
+        updated.kind == RoomEventKind.MESSAGE_UPDATED and updated.message.text == "hi"
+    )
     assert finished.kind == RoomEventKind.MESSAGE_FINISHED
     assert finished.message.is_streaming is False

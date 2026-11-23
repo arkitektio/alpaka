@@ -1,8 +1,8 @@
 from .alpaka import Alpaka
-from .streaming import RoomStream, stream_into_room
 
 # The service is declared with arkitekt-spec, a core dependency: it is always there.
 from .arkitekt import alpaka as alpaka_service
+from .streaming import RoomStream, stream_into_room
 
 try:
     # The tunnel needs httpx, which arrives with the `alpaka[openai]` extra.

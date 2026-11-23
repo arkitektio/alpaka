@@ -1,11 +1,9 @@
 """The base client for alpaka"""
 
-from collections.abc import AsyncGenerator, Generator
 import ssl
+from collections.abc import AsyncGenerator, Generator
 from types import TracebackType
-from typing import Any, Self
-
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Self
 
 from koil import unkoil, unkoil_gen
 from koil.composition import Composition
@@ -25,7 +23,6 @@ if TYPE_CHECKING:
     from alpaka.tunnel import AlpakaEndpoint
 
 
-
 class Alpaka(Composition, AlpakaApi):
     """Alpaka
 
@@ -42,13 +39,13 @@ class Alpaka(Composition, AlpakaApi):
     SDK client once, on first use of :attr:`openai` / :attr:`aopenai`.
     """
 
-
     rath: AlpakaRath = Field(
         ...,
         description="The Rath client used to interact with the Alpaka API.",
     )
     llm_url: str = Field(
-        ..., description="The OpenAI-compatible endpoint of the alpaka server, `<alpaka>/llm/v1`"
+        ...,
+        description="The OpenAI-compatible endpoint of the alpaka server, `<alpaka>/llm/v1`",
     )
     tokens: Any = Field(
         ...,
@@ -107,7 +104,12 @@ class Alpaka(Composition, AlpakaApi):
         if self._openai is None:
             from alpaka.tunnel import build_openai
 
-            self._openai = build_openai(self.llm_url, self.tokens, proxy=self.proxy, ssl_context=self.ssl_context)
+            self._openai = build_openai(
+                self.llm_url,
+                self.tokens,
+                proxy=self.proxy,
+                ssl_context=self.ssl_context,
+            )
         return self._openai
 
     @property
@@ -120,27 +122,39 @@ class Alpaka(Composition, AlpakaApi):
         if self._aopenai is None:
             from alpaka.tunnel import build_async_openai
 
-            self._aopenai = build_async_openai(self.llm_url, self.tokens, proxy=self.proxy, ssl_context=self.ssl_context)
+            self._aopenai = build_async_openai(
+                self.llm_url,
+                self.tokens,
+                proxy=self.proxy,
+                ssl_context=self.ssl_context,
+            )
         return self._aopenai
 
     def get_endpoint(self) -> "AlpakaEndpoint":
         """The OpenAI-compatible endpoint: base URL and a current token (it expires)."""
         from alpaka.tunnel import AlpakaEndpoint
 
-        return AlpakaEndpoint(base_url=self.llm_url, api_key=unkoil(self.tokens.aget_token))
+        return AlpakaEndpoint(
+            base_url=self.llm_url, api_key=unkoil(self.tokens.aget_token)
+        )
 
     async def aget_endpoint(self) -> "AlpakaEndpoint":
         """Async twin of :meth:`get_endpoint`."""
         from alpaka.tunnel import AlpakaEndpoint
 
-        return AlpakaEndpoint(base_url=self.llm_url, api_key=await self.tokens.aget_token())
-
+        return AlpakaEndpoint(
+            base_url=self.llm_url, api_key=await self.tokens.aget_token()
+        )
 
     @staticmethod
-    def _serialize(operation: type[TOperation], variables: dict[str, Any]) -> dict[str, Any]:
+    def _serialize(
+        operation: type[TOperation], variables: dict[str, Any]
+    ) -> dict[str, Any]:
         # alpaka omits every argument that was not set (exclude_unset), as it always has:
         # an optional left out stays off the wire rather than being sent as null.
-        return operation.Arguments(**variables).model_dump(by_alias=True, exclude_unset=True)
+        return operation.Arguments(**variables).model_dump(
+            by_alias=True, exclude_unset=True
+        )
 
     def _headers(self, task: "TaskLike | None" = None) -> dict[str, Any] | None:
         """The per-call headers: the provenance token of the task this call is for.

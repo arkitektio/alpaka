@@ -30,7 +30,9 @@ def test_send_message(alpaka: Alpaka) -> None:
 @pytest.mark.integration
 def test_get_message(alpaka: Alpaka) -> None:
     """A sent message can be fetched again by its id."""
-    room = alpaka.create_room(title="Fetch Message Room", description="Holds a message.")
+    room = alpaka.create_room(
+        title="Fetch Message Room", description="Holds a message."
+    )
     sent = alpaka.send(text="Fetch this message", room=room.id, agent_id="test-agent")
 
     fetched = alpaka.get_message(id=sent.id)
@@ -73,7 +75,9 @@ def test_send_message_with_attached_structure(alpaka: Alpaka) -> None:
 @pytest.mark.integration
 def test_list_messages_contains_sent_message(alpaka: Alpaka) -> None:
     """A sent message shows up when listing messages."""
-    room = alpaka.create_room(title="Listed Messages Room", description="Lists messages.")
+    room = alpaka.create_room(
+        title="Listed Messages Room", description="Lists messages."
+    )
     sent = alpaka.send(text="List this message", room=room.id, agent_id="test-agent")
 
     messages = alpaka.list_messages(pagination=OffsetPaginationInput(limit=100))

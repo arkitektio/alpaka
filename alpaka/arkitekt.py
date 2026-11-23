@@ -8,18 +8,17 @@ ask for the client it returns. An app takes all of it in with
 import os
 from typing import Annotated
 
+from arkitekt_spec.declare.app import AppRegistry
+from arkitekt_spec.declare.tested import tested_against
+from arkitekt_spec.declare.widgets import SearchWidget
 from fakts import Alias, Require, TokenLoader
 from fakts.contrib.rath.auth import FaktsAuthLink
-from graphql import OperationType
 from rath.links.aiohttp import AIOHttpLink
 from rath.links.compose import compose
 from rath.links.graphql_ws import GraphQLWSLink
 from rath.links.split import SplitLink
 
-from arkitekt_spec.declare.app import AppRegistry
-from arkitekt_spec.declare.tested import tested_against
-from arkitekt_spec.declare.widgets import SearchWidget
-
+from alpaka.alpaka import Alpaka
 from alpaka.api.schema import (
     LLMModel,
     Message,
@@ -28,8 +27,8 @@ from alpaka.api.schema import (
     SearchMessagesQuery,
     SearchRoomsQuery,
 )
-from alpaka.alpaka import Alpaka
 from alpaka.rath import AlpakaRath
+from graphql import OperationType
 
 
 def build_relative_path(*path: str) -> str:
@@ -52,7 +51,11 @@ TESTED = tested_against("alpaka")
 def alpaka(
     alpaka: Annotated[
         Alias,
-        Require("live.arkitekt.alpaka", "Where the models this app can prompt are served", version=TESTED),
+        Require(
+            "live.arkitekt.alpaka",
+            "Where the models this app can prompt are served",
+            version=TESTED,
+        ),
     ],
     tokens: TokenLoader,
 ) -> Alpaka:
@@ -71,8 +74,16 @@ def alpaka(
             link=compose(
                 FaktsAuthLink(token_loader=tokens),
                 SplitLink(
-                    left=AIOHttpLink(endpoint_url=alpaka.to_http_path("graphql"), proxy=alpaka.proxy, ssl_context=alpaka.ssl_context()),
-                    right=GraphQLWSLink(ws_endpoint_url=alpaka.to_ws_path("graphql"), proxy=alpaka.proxy, ssl_context=alpaka.ssl_context()),
+                    left=AIOHttpLink(
+                        endpoint_url=alpaka.to_http_path("graphql"),
+                        proxy=alpaka.proxy,
+                        ssl_context=alpaka.ssl_context(),
+                    ),
+                    right=GraphQLWSLink(
+                        ws_endpoint_url=alpaka.to_ws_path("graphql"),
+                        proxy=alpaka.proxy,
+                        ssl_context=alpaka.ssl_context(),
+                    ),
                     split=lambda o: o.node.operation != OperationType.SUBSCRIPTION,
                 ),
             ),

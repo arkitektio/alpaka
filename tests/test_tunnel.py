@@ -50,7 +50,9 @@ def client_with(tokens: object) -> Alpaka:
 @pytest.fixture
 def tokens():
     """A hot-plugged fakts with a static, never-expiring token, as the token loader."""
-    with build_testing_fakts(aliases={"alpaka": "http://testserver"}, token="static-token") as f:
+    with build_testing_fakts(
+        aliases={"alpaka": "http://testserver"}, token="static-token"
+    ) as f:
         yield f
 
 
@@ -116,7 +118,9 @@ async def test_async_requests_refresh_token_each_time():
     async with build_testing_fakts(
         aliases={"alpaka": "http://testserver"}, tokens=TOKEN_SEQUENCE, token_lifetime=0
     ) as tokens:
-        sdk = build_async_openai(LLM_URL, tokens, transport=httpx.MockTransport(handler))
+        sdk = build_async_openai(
+            LLM_URL, tokens, transport=httpx.MockTransport(handler)
+        )
         messages = [{"role": "user", "content": "hi"}]
         await sdk.chat.completions.create(model="alpaka/default", messages=messages)
         await sdk.chat.completions.create(model="alpaka/default", messages=messages)
@@ -134,8 +138,6 @@ def test_a_foreign_http_client_is_refused(tokens):
         build_openai(LLM_URL, tokens, http_client=httpx.Client())
 
 
-
-
 async def test_entering_the_client_leaves_its_token_loader_to_the_runtime():
     """Under an app the loader is the runtime's fakts, entered once by the runtime;
     a client entering it again is refused by fakts."""
@@ -146,6 +148,8 @@ async def test_entering_the_client_leaves_its_token_loader_to_the_runtime():
     async with build_testing_fakts(
         aliases={"alpaka": "http://testserver"}, token="static-token"
     ) as tokens:
-        client = Alpaka(rath=AlpakaRath(link=AsyncMockLink()), llm_url=LLM_URL, tokens=tokens)
+        client = Alpaka(
+            rath=AlpakaRath(link=AsyncMockLink()), llm_url=LLM_URL, tokens=tokens
+        )
         async with client:
             assert (await client.aget_endpoint()).api_key == "static-token"

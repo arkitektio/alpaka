@@ -20,9 +20,9 @@ full text is sent with the finish so a delta lost on the way is repaired.
 
 import asyncio
 import time
+from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING, Any
-from collections.abc import AsyncIterator
 
 from alpaka.api.schema import UNSET, ListMessage, StructureInput
 
@@ -38,7 +38,14 @@ FLUSH_INTERVAL_SECONDS = 0.15
 class RoomStream:
     """An open streaming message. Do not construct directly; see :func:`stream_into_room`."""
 
-    def __init__(self, client: "Alpaka", message: ListMessage, *, flush_chars: int, flush_interval: float) -> None:
+    def __init__(
+        self,
+        client: "Alpaka",
+        message: ListMessage,
+        *,
+        flush_chars: int,
+        flush_interval: float,
+    ) -> None:
         self.client = client
         self.message = message
         self.text = message.text or ""
@@ -77,7 +84,10 @@ class RoomStream:
             return
         self._buffer.append(delta)
         self._buffered_chars += len(delta)
-        if self._buffered_chars >= self._flush_chars or (time.monotonic() - self._last_flush) >= self._flush_interval:
+        if (
+            self._buffered_chars >= self._flush_chars
+            or (time.monotonic() - self._last_flush) >= self._flush_interval
+        ):
             await self.flush()
 
     async def flush(self) -> None:
@@ -117,8 +127,15 @@ async def stream_into_room(
     message instead of leaving it streaming forever.
     """
     # UNSET rather than None: an omitted optional stays omitted on the wire.
-    message = await client.astart_message(room=room, agent_id=agent_id, parent=UNSET if parent is None else parent, text=text)
-    stream = RoomStream(client, message, flush_chars=flush_chars, flush_interval=flush_interval)
+    message = await client.astart_message(
+        room=room,
+        agent_id=agent_id,
+        parent=UNSET if parent is None else parent,
+        text=text,
+    )
+    stream = RoomStream(
+        client, message, flush_chars=flush_chars, flush_interval=flush_interval
+    )
     try:
         yield stream
     finally:

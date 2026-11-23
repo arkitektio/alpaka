@@ -134,7 +134,10 @@ def build_openai(
         verify=ssl_context if ssl_context is not None else True,
     )
     return OpenAI(
-        base_url=base_url, api_key=PLACEHOLDER_API_KEY, http_client=http_client, **kwargs
+        base_url=base_url,
+        api_key=PLACEHOLDER_API_KEY,
+        http_client=http_client,
+        **kwargs,
     )
 
 
@@ -162,5 +165,8 @@ def build_async_openai(
         verify=ssl_context if ssl_context is not None else True,
     )
     return AsyncOpenAI(
-        base_url=base_url, api_key=PLACEHOLDER_API_KEY, http_client=http_client, **kwargs
+        base_url=base_url,
+        api_key=PLACEHOLDER_API_KEY,
+        http_client=http_client,
+        **kwargs,
     )
