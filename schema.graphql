@@ -16,6 +16,20 @@ input AddDocumentsToCollectionInput {
   documents: [DocumentInput!]!
 }
 
+"""Objects to put in a collaboration at once: all of them, or none"""
+input AddManyToCollaborationInput {
+  """The collaboration's key (lok's)"""
+  collaboration: ID!
+
+  """What to put in; a whole before its parts"""
+  objects: [CollaborationObjectRef!]!
+
+  """
+  The collaboration's name, kept here when these are the first things put in
+  """
+  name: String = null
+}
+
 """A participant in a room"""
 type Agent @key(fields: "id", resolvable: true) {
   id: ID!
@@ -243,6 +257,13 @@ type ChromaCollection @identified(by: "@alpaka/chromacollection") {
 
 """Filter for ChromaCollection"""
 input ChromaCollectionFilter {
+  """
+  Only what is in this collaboration (its key): put in, or part of what was
+  """
+  inCollaboration: ID
+
+  """Only what the workflow (its root task id) created"""
+  createdUnder: ID
   AND: ChromaCollectionFilter
   OR: ChromaCollectionFilter
   NOT: ChromaCollectionFilter
@@ -296,8 +317,20 @@ type Collaboration {
   description: String
   createdAt: DateTime!
 
-  """What is in the collaboration; what is part of these is in it too"""
-  items: [CollaborationItem!]!
+  """
+  The collaboration's key across the hub: what lok grants, and what names it in every service
+  """
+  key: ID!
+
+  """
+  What is in the collaboration, oldest first; what is part of these is in it too. `brought` keeps what was put in by hand (false) or only what came along with it (true)
+  """
+  items(brought: Boolean = null, pagination: OffsetPaginationInput = null): [CollaborationItem!]!
+
+  """
+  How many objects are in the collaboration: all of them, or (`brought`) only those put in by hand (false) or only those that came along with one (true)
+  """
+  itemCount(brought: Boolean = null): Int!
 }
 
 """
@@ -321,8 +354,23 @@ type CollaborationItem {
 
 """An object to put in, or take out of, a collaboration"""
 input CollaborationObjectInput {
+  """The collaboration's key (lok's)"""
   collaboration: ID!
 
+  """The structure the object is known by: @mikro/scene"""
+  identifier: String!
+
+  """The object's id"""
+  object: ID!
+
+  """
+  The collaboration's name, kept here when this is the first thing put in
+  """
+  name: String = null
+}
+
+"""An object, by its structure and id"""
+input CollaborationObjectRef {
   """The structure the object is known by: @mikro/scene"""
   identifier: String!
 
@@ -338,12 +386,6 @@ input CreateBudgetInput {
   limitTokens: Int = null
   limitCost: Decimal = null
   hard: Boolean! = true
-}
-
-"""A new collaboration"""
-input CreateCollaborationInput {
-  name: String!
-  description: String = null
 }
 
 """The room to create"""
@@ -584,6 +626,13 @@ type LLMModel @identified(by: "@alpaka/llmmodel") {
 
 """Filter for LLMModel"""
 input LLMModelFilter {
+  """
+  Only what is in this collaboration (its key): put in, or part of what was
+  """
+  inCollaboration: ID
+
+  """Only what the workflow (its root task id) created"""
+  createdUnder: ID
   AND: LLMModelFilter
   OR: LLMModelFilter
   NOT: LLMModelFilter
@@ -714,6 +763,13 @@ type Message @key(fields: "id", resolvable: true) @identified(by: "@alpaka/messa
 
 """Message represent the message of an agent on a room"""
 input MessageFilter {
+  """
+  Only what is in this collaboration (its key): put in, or part of what was
+  """
+  inCollaboration: ID
+
+  """Only what the workflow (its root task id) created"""
+  createdUnder: ID
   AND: MessageFilter
   OR: MessageFilter
   NOT: MessageFilter
@@ -741,13 +797,20 @@ enum Modality {
 
 """The root mutation type"""
 type Mutation {
-  """Create an empty collaboration, to put rooms in and grant a guest"""
-  createCollaboration(input: CreateCollaborationInput!): Collaboration! @auth(required_scopes: ["alpaka_share"], any_role_of: ["alpaka_editor"])
-
   """
-  Put a room or a message in a collaboration, with what it needs to be seen: a room comes with its agents and messages
+  Put a room or a message in a collaboration (lok's, by its key), with what it needs to be seen: a room comes with its agents and messages. The collaboration's row here is made the first time something is put in
   """
   addToCollaboration(input: CollaborationObjectInput!): Collaboration! @auth(required_scopes: ["alpaka_share"], any_role_of: ["alpaka_editor"])
+
+  """
+  Put several rooms or messages in a collaboration (by its key) at once, a room before its messages, each with what it needs to be seen: all of them, or none
+  """
+  addManyToCollaboration(input: AddManyToCollaborationInput!): Collaboration! @auth(required_scopes: ["alpaka_share"], any_role_of: ["alpaka_editor"])
+
+  """
+  Put what a workflow (its root task) created in alpaka in a collaboration, as it is now: the rooms it opened, with their messages. A message posted into a room made before the workflow, and not shared, is left out and reported; providers, models and collections never go in. `dryRun` only says what would be put in
+  """
+  shareWorkflow(input: ShareWorkflowInput!): WorkflowShare! @auth(required_scopes: ["alpaka_share"], any_role_of: ["alpaka_editor"])
 
   """
   Take a room or a message out of a collaboration, with what it brought that nothing else there needs
@@ -755,9 +818,9 @@ type Mutation {
   removeFromCollaboration(input: CollaborationObjectInput!): Collaboration! @auth(required_scopes: ["alpaka_share"], any_role_of: ["alpaka_editor"])
 
   """
-  Delete a collaboration: whoever was granted it sees nothing of it any more
+  Take everything alpaka put in a collaboration (by its key) out of it: whoever was granted it sees nothing of it here any more. lok's collaboration, and its grants, stay
   """
-  deleteCollaboration(id: ID!): ID! @auth(required_scopes: ["alpaka_share"], any_role_of: ["alpaka_editor"])
+  deleteCollaboration(key: ID!): ID! @auth(required_scopes: ["alpaka_share"], any_role_of: ["alpaka_editor"])
 
   """Open a new room"""
   createRoom(input: CreateRoomInput!): Room! @auth(required_scopes: ["alpaka_write"], any_role_of: ["alpaka_editor"])
@@ -917,6 +980,9 @@ type Provider @identified(by: "@alpaka/provider") {
   """The kind of the provider"""
   kind: ProviderKind!
 
+  """How many models the provider offers"""
+  modelCount: Int!
+
   """
   Whether an API key is configured for this provider. The key itself is never exposed.
   """
@@ -928,6 +994,13 @@ type Provider @identified(by: "@alpaka/provider") {
 
 """Filter for Provider"""
 input ProviderFilter {
+  """
+  Only what is in this collaboration (its key): put in, or part of what was
+  """
+  inCollaboration: ID
+
+  """Only what the workflow (its root task id) created"""
+  createdUnder: ID
   AND: ProviderFilter
   OR: ProviderFilter
   NOT: ProviderFilter
@@ -996,10 +1069,10 @@ type Query {
   """
   List the organization's collaborations: what a guest granted one sees of it (a guest: the collaborations granted to them)
   """
-  collaborations: [Collaboration!]! @auth(required_scopes: ["alpaka_read"])
+  collaborations(pagination: OffsetPaginationInput = null): [Collaboration!]! @auth(required_scopes: ["alpaka_read"])
 
-  """Get a single collaboration by ID"""
-  collaboration(id: ID!): Collaboration! @auth(required_scopes: ["alpaka_read"])
+  """Get a single collaboration by its key (lok's): what was put in it here"""
+  collaboration(key: ID!): Collaboration! @auth(required_scopes: ["alpaka_read"])
 
   """List the rooms in this organization"""
   rooms(filters: RoomFilter, ordering: [RoomOrder!]! = [], pagination: OffsetPaginationInput): [Room!]! @auth(required_scopes: ["alpaka_read"])
@@ -1140,6 +1213,19 @@ type Room @key(fields: "id", resolvable: true) @identified(by: "@alpaka/room") {
 
   """The time this room got created"""
   createdAt: DateTime!
+
+  """
+  The objects this room is about: the structures it was opened with (`CreateRoomInput.talkingAbout`), the ones `RoomFilter.talkingAbout` matches
+  """
+  talkingAbout: [Structure!]!
+
+  """
+  When the room last saw a message, or when it was created if it has none. `RoomOrder.lastMessageAt` sorts by the same time
+  """
+  lastActivity: DateTime!
+
+  """How many messages the room holds"""
+  messageCount: Int!
 }
 
 """Something that happened in a room"""
@@ -1174,6 +1260,13 @@ enum RoomField {
 A conversation; embeds its title + description so the room list's ``search`` finds it by topic.
 """
 input RoomFilter {
+  """
+  Only what is in this collaboration (its key): put in, or part of what was
+  """
+  inCollaboration: ID
+
+  """Only what the workflow (its root task id) created"""
+  createdUnder: ID
   AND: RoomFilter
   OR: RoomFilter
   NOT: RoomFilter
@@ -1195,6 +1288,11 @@ input RoomFilter {
 input RoomOrder @oneOf {
   createdAt: Ordering
   title: Ordering
+
+  """
+  By the newest message, or the room's creation when it has none: DESC lists the rooms with recent activity first
+  """
+  lastMessageAt: Ordering
 }
 
 type RoomStats {
@@ -1269,6 +1367,51 @@ input SendMessageInput {
   text: String!
   parent: ID = null
   attachStructures: [StructureInput!] = null
+}
+
+"""Put what a workflow created in a collaboration, as it is now"""
+input ShareWorkflowInput {
+  """The collaboration's key (lok's)"""
+  collaboration: ID!
+
+  """
+  The workflow: the id of the task a person started, the root of every task it caused
+  """
+  rootTask: ID!
+
+  """Only say what would be put in, and what left out"""
+  dryRun: Boolean! = false
+
+  """The collaboration's name, kept here when this puts the first things in"""
+  name: String = null
+}
+
+"""An object, by its structure and id"""
+type SharedObject {
+  """The structure the object is known by: @mikro/scene"""
+  identifier: String
+
+  """The object's id"""
+  object: ID!
+}
+
+"""
+Created in the workflow, but part of something made before it that is not shared: left out
+"""
+type SkippedObject {
+  """The structure the object is known by"""
+  identifier: String
+
+  """The object's id"""
+  object: ID!
+
+  """The structure of what it is part of"""
+  wholeIdentifier: String
+
+  """
+  The id of what it is part of: put that in, and share the workflow again, to bring it
+  """
+  whole: ID!
 }
 
 """Open a message that text will be streamed into"""
@@ -1518,6 +1661,33 @@ type User @key(fields: "id", resolvable: true) {
   """The user's IANA time zone, if the issuer sends one."""
   zoneinfo: String
   activeOrganization: Organization
+}
+
+"""
+What sharing a workflow put in a collaboration here (or, tried, would put in)
+"""
+type WorkflowShare {
+  """The collaboration's key"""
+  collaboration: ID!
+
+  """Whether nothing was written"""
+  dryRun: Boolean!
+
+  """Put in, with what each needs to be seen"""
+  added: [SharedObject!]!
+
+  """
+  How many parts came along with their whole, without being put in themselves
+  """
+  covered: Int!
+
+  """Left out: parts of something made before the workflow and not shared"""
+  skipped: [SkippedObject!]!
+
+  """
+  Structures here that cannot say what created their objects: not looked at
+  """
+  unknown: [String!]!
 }
 
 scalar _Any

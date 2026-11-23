@@ -168,6 +168,8 @@ class ChatMessageInput(BaseModel):
 
 class ChromaCollectionFilter(BaseModel):
     """Filter for ChromaCollection"""
+    in_collaboration: ID | None = Field(validation_alias=AliasChoices('in_collaboration', 'inCollaboration'), serialization_alias='inCollaboration', default=None, description='Only what is in this collaboration (its key): put in, or part of what was')
+    created_under: ID | None = Field(validation_alias=AliasChoices('created_under', 'createdUnder'), serialization_alias='createdUnder', default=None, description='Only what the workflow (its root task id) created')
     and_: 'ChromaCollectionFilter | None' = Field(validation_alias=AliasChoices('and_', 'AND'), serialization_alias='AND', default=None)
     or_: 'ChromaCollectionFilter | None' = Field(validation_alias=AliasChoices('or_', 'OR'), serialization_alias='OR', default=None)
     not_: 'ChromaCollectionFilter | None' = Field(validation_alias=AliasChoices('not_', 'NOT'), serialization_alias='NOT', default=None)
@@ -231,6 +233,8 @@ class ImageInput(BaseModel):
 
 class LLMModelFilter(BaseModel):
     """Filter for LLMModel"""
+    in_collaboration: ID | None = Field(validation_alias=AliasChoices('in_collaboration', 'inCollaboration'), serialization_alias='inCollaboration', default=None, description='Only what is in this collaboration (its key): put in, or part of what was')
+    created_under: ID | None = Field(validation_alias=AliasChoices('created_under', 'createdUnder'), serialization_alias='createdUnder', default=None, description='Only what the workflow (its root task id) created')
     and_: 'LLMModelFilter | None' = Field(validation_alias=AliasChoices('and_', 'AND'), serialization_alias='AND', default=None)
     or_: 'LLMModelFilter | None' = Field(validation_alias=AliasChoices('or_', 'OR'), serialization_alias='OR', default=None)
     not_: 'LLMModelFilter | None' = Field(validation_alias=AliasChoices('not_', 'NOT'), serialization_alias='NOT', default=None)
@@ -266,6 +270,8 @@ class MemoryInput(BaseModel):
 
 class MessageFilter(BaseModel):
     """Message represent the message of an agent on a room"""
+    in_collaboration: ID | None = Field(validation_alias=AliasChoices('in_collaboration', 'inCollaboration'), serialization_alias='inCollaboration', default=None, description='Only what is in this collaboration (its key): put in, or part of what was')
+    created_under: ID | None = Field(validation_alias=AliasChoices('created_under', 'createdUnder'), serialization_alias='createdUnder', default=None, description='Only what the workflow (its root task id) created')
     and_: 'MessageFilter | None' = Field(validation_alias=AliasChoices('and_', 'AND'), serialization_alias='AND', default=None)
     or_: 'MessageFilter | None' = Field(validation_alias=AliasChoices('or_', 'OR'), serialization_alias='OR', default=None)
     not_: 'MessageFilter | None' = Field(validation_alias=AliasChoices('not_', 'NOT'), serialization_alias='NOT', default=None)
@@ -315,6 +321,8 @@ class QueryInput(BaseModel):
 
 class RoomFilter(BaseModel):
     """A conversation; embeds its title + description so the room list's ``search`` finds it by topic."""
+    in_collaboration: ID | None = Field(validation_alias=AliasChoices('in_collaboration', 'inCollaboration'), serialization_alias='inCollaboration', default=None, description='Only what is in this collaboration (its key): put in, or part of what was')
+    created_under: ID | None = Field(validation_alias=AliasChoices('created_under', 'createdUnder'), serialization_alias='createdUnder', default=None, description='Only what the workflow (its root task id) created')
     and_: 'RoomFilter | None' = Field(validation_alias=AliasChoices('and_', 'AND'), serialization_alias='AND', default=None)
     or_: 'RoomFilter | None' = Field(validation_alias=AliasChoices('or_', 'OR'), serialization_alias='OR', default=None)
     not_: 'RoomFilter | None' = Field(validation_alias=AliasChoices('not_', 'NOT'), serialization_alias='NOT', default=None)
@@ -334,7 +342,12 @@ class RoomOrderTitle(BaseModel):
     """'title' variant of the @oneOf input 'RoomOrder'"""
     title: Ordering
     model_config = ConfigDict(frozen=True, extra='forbid', populate_by_name=True, use_enum_values=True)
-RoomOrder = RoomOrderCreatedAt | RoomOrderTitle
+
+class RoomOrderLastMessageAt(BaseModel):
+    """By the newest message, or the room's creation when it has none: DESC lists the rooms with recent activity first"""
+    last_message_at: Ordering = Field(validation_alias=AliasChoices('last_message_at', 'lastMessageAt'), serialization_alias='lastMessageAt', description="By the newest message, or the room's creation when it has none: DESC lists the rooms with recent activity first")
+    model_config = ConfigDict(frozen=True, extra='forbid', populate_by_name=True, use_enum_values=True)
+RoomOrder = RoomOrderCreatedAt | RoomOrderTitle | RoomOrderLastMessageAt
 
 class StructureInput(BaseModel):
     """A reference to an object held by another Arkitekt service"""
