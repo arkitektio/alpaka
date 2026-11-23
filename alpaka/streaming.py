@@ -22,7 +22,9 @@ import asyncio
 import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
+
+from rath.scalars import IDCoercible
 
 from alpaka.api.schema import UNSET, ListMessage, StructureInput
 
@@ -107,9 +109,9 @@ class RoomStream:
 async def stream_into_room(
     client: "Alpaka",
     *,
-    room: Any,
+    room: IDCoercible,
     agent_id: str,
-    parent: Any | None = None,
+    parent: IDCoercible | None = None,
     text: str = "",
     flush_chars: int = FLUSH_CHARS,
     flush_interval: float = FLUSH_INTERVAL_SECONDS,

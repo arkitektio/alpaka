@@ -3,7 +3,7 @@
 import ssl
 from collections.abc import AsyncGenerator, Generator
 from types import TracebackType
-from typing import TYPE_CHECKING, Any, Self
+from typing import TYPE_CHECKING, Any, TypeVar
 
 from koil import unkoil, unkoil_gen
 from koil.composition import Composition
@@ -21,6 +21,8 @@ if TYPE_CHECKING:
     from openai import AsyncOpenAI, OpenAI
 
     from alpaka.tunnel import AlpakaEndpoint
+
+AlpakaT = TypeVar("AlpakaT", bound="Alpaka")
 
 
 class Alpaka(Composition, AlpakaApi):
@@ -76,7 +78,7 @@ class Alpaka(Composition, AlpakaApi):
     _openai: "OpenAI | None" = PrivateAttr(default=None)
     _aopenai: "AsyncOpenAI | None" = PrivateAttr(default=None)
 
-    async def __aenter__(self) -> Self:
+    async def __aenter__(self: AlpakaT) -> AlpakaT:
         """Connect the rath, and nothing else.
 
         Not a composition's enter-every-field: ``tokens`` is borrowed -- under an

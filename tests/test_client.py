@@ -3,7 +3,7 @@
 No server: the rath is a fake returning canned data, or an ``AsyncMockLink``.
 """
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from types import SimpleNamespace
 from typing import Any
 
@@ -27,21 +27,27 @@ class FakeRath:
 
     def __init__(self) -> None:
         self.sent: list[dict[str, Any]] = []
-        self.headers: list[Any] = []
+        self.headers: list[dict[str, Any] | None] = []
 
-    def _answer(self, variables: dict[str, Any]) -> Any:
+    def _answer(self, variables: dict[str, Any]) -> SimpleNamespace:
         self.sent.append(variables)
         return SimpleNamespace(data={"room": {"id": "room-1", "agent": {"id": "a-1"}}})
 
     async def aquery(
-        self, document: str, variables: dict[str, Any], headers: Any = None
-    ) -> Any:
+        self,
+        document: str,
+        variables: dict[str, Any],
+        headers: dict[str, Any] | None = None,
+    ) -> SimpleNamespace:
         self.headers.append(headers)
         return self._answer(variables)
 
     async def asubscribe(
-        self, document: str, variables: dict[str, Any], headers: Any = None
-    ) -> AsyncIterator[Any]:
+        self,
+        document: str,
+        variables: dict[str, Any],
+        headers: dict[str, Any] | None = None,
+    ) -> AsyncIterator[SimpleNamespace]:
         self.headers.append(headers)
         yield self._answer(variables)
 
@@ -150,7 +156,7 @@ async def test_stream_into_room_writes_through_the_client_it_is_given() -> None:
     calls: list[str] = []
 
     def recording(name: str) -> AlpakaRath:
-        def answer(kind: str) -> Any:
+        def answer(kind: str) -> Callable[[Operation], Awaitable[dict[str, Any]]]:
             async def resolve(operation: Operation) -> dict[str, Any]:
                 calls.append(f"{name}:{kind}")
                 return {

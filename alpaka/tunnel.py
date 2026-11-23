@@ -25,6 +25,7 @@ default model.
 """
 
 import ssl
+from collections.abc import AsyncGenerator, Generator, Mapping
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -68,11 +69,15 @@ class TokenAuth(httpx.Auth):
     def __init__(self, tokens: "TokenLoader") -> None:
         self.tokens = tokens
 
-    def sync_auth_flow(self, request: httpx.Request):
+    def sync_auth_flow(
+        self, request: httpx.Request
+    ) -> Generator[httpx.Request, httpx.Response, None]:
         request.headers["Authorization"] = f"Bearer {unkoil(self.tokens.aget_token)}"
         yield request
 
-    async def async_auth_flow(self, request: httpx.Request):
+    async def async_auth_flow(
+        self, request: httpx.Request
+    ) -> AsyncGenerator[httpx.Request, httpx.Response]:
         token = await self.tokens.aget_token()
         request.headers["Authorization"] = f"Bearer {token}"
         yield request
@@ -83,7 +88,7 @@ class TokenAuth(httpx.Auth):
 PLACEHOLDER_API_KEY = "managed-by-alpaka"
 
 
-def _refuse_http_client(kwargs: dict[str, Any]) -> None:
+def _refuse_http_client(kwargs: Mapping[str, object]) -> None:
     if "http_client" in kwargs:
         raise TypeError(
             "build_openai builds the http client itself, so the bearer auth is "

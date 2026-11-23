@@ -9,6 +9,8 @@ expiry->refetch path, not a fake counter.
 Needs the ``openai`` extra (openai + fakts); skipped where absent.
 """
 
+from collections.abc import Iterator
+
 import httpx
 import pytest
 
@@ -17,7 +19,7 @@ fakts = pytest.importorskip("fakts")
 if not hasattr(fakts, "build_testing_fakts"):  # pragma: no cover
     pytest.skip("installed fakts predates TestingFakts", allow_module_level=True)
 
-from fakts.testing import build_testing_fakts  # noqa: E402
+from fakts.testing import TestingFakts, build_testing_fakts  # noqa: E402
 
 from alpaka.alpaka import Alpaka  # noqa: E402
 from alpaka.tunnel import PLACEHOLDER_API_KEY, build_async_openai, build_openai  # noqa: E402
@@ -48,7 +50,7 @@ def client_with(tokens: object) -> Alpaka:
 
 
 @pytest.fixture
-def tokens():
+def tokens() -> Iterator[TestingFakts]:
     """A hot-plugged fakts with a static, never-expiring token, as the token loader."""
     with build_testing_fakts(
         aliases={"alpaka": "http://testserver"}, token="static-token"
@@ -56,13 +58,15 @@ def tokens():
         yield f
 
 
-def test_get_endpoint_is_the_clients_url_and_current_token(tokens):
+def test_get_endpoint_is_the_clients_url_and_current_token(
+    tokens: TestingFakts,
+) -> None:
     endpoint = client_with(tokens).get_endpoint()
     assert endpoint.base_url == LLM_URL
     assert endpoint.api_key == "static-token"
 
 
-async def test_aget_endpoint_inside_a_running_loop():
+async def test_aget_endpoint_inside_a_running_loop() -> None:
     async with build_testing_fakts(
         aliases={"alpaka": "http://testserver"}, token="static-token"
     ) as tokens:
@@ -71,7 +75,9 @@ async def test_aget_endpoint_inside_a_running_loop():
     assert endpoint.api_key == "static-token"
 
 
-def test_openai_is_built_once_lazily_and_points_at_the_tunnel(tokens):
+def test_openai_is_built_once_lazily_and_points_at_the_tunnel(
+    tokens: TestingFakts,
+) -> None:
     """No credential is handed to the SDK -- auth is per request -- and nothing
     is fetched until a request is made."""
     client = client_with(tokens)
@@ -83,7 +89,7 @@ def test_openai_is_built_once_lazily_and_points_at_the_tunnel(tokens):
     assert client.aopenai is client.aopenai
 
 
-def test_sync_requests_refresh_token_each_time():
+def test_sync_requests_refresh_token_each_time() -> None:
     """Every request re-reads the token through the real expiry machinery, so a
     client built before a token expired keeps working."""
     seen_auth: list[str] = []
@@ -108,7 +114,7 @@ def test_sync_requests_refresh_token_each_time():
     assert seen_urls == [f"{LLM_URL}/chat/completions"] * 2
 
 
-async def test_async_requests_refresh_token_each_time():
+async def test_async_requests_refresh_token_each_time() -> None:
     seen_auth: list[str] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -128,17 +134,17 @@ async def test_async_requests_refresh_token_each_time():
     assert seen_auth == ["Bearer tok-1", "Bearer tok-2"]
 
 
-def test_constructor_kwargs_forwarded(tokens):
+def test_constructor_kwargs_forwarded(tokens: TestingFakts) -> None:
     assert build_openai(LLM_URL, tokens, max_retries=7).max_retries == 7
 
 
-def test_a_foreign_http_client_is_refused(tokens):
+def test_a_foreign_http_client_is_refused(tokens: TestingFakts) -> None:
     """Passing one would silently drop the bearer auth; the transport is the seam."""
     with pytest.raises(TypeError, match="transport="):
         build_openai(LLM_URL, tokens, http_client=httpx.Client())
 
 
-async def test_entering_the_client_leaves_its_token_loader_to_the_runtime():
+async def test_entering_the_client_leaves_its_token_loader_to_the_runtime() -> None:
     """Under an app the loader is the runtime's fakts, entered once by the runtime;
     a client entering it again is refused by fakts."""
     from rath.links.testing.mock import AsyncMockLink

@@ -1,4 +1,5 @@
 from types import TracebackType
+from typing import TypeVar
 
 from pydantic import Field
 from rath import rath
@@ -16,6 +17,9 @@ class AlpakaLinkComposition(TypedComposedLink):
     split: SplitLink
 
 
+AlpakaRathT = TypeVar("AlpakaRathT", bound="AlpakaRath")
+
+
 class AlpakaRath(rath.Rath):
     """Fluss Rath
 
@@ -23,7 +27,7 @@ class AlpakaRath(rath.Rath):
         rath (_type_): _description_
     """
 
-    async def __aenter__(self):
+    async def __aenter__(self: AlpakaRathT) -> AlpakaRathT:
         """Enter the client.
 
         Entering does not make it "the current client": nothing is. Calls go

@@ -70,7 +70,7 @@ def test_a_subscriber_sees_created_updated_finished(alpaka: Alpaka) -> None:
     # broadcast: events are not backfilled, so anything sent while it is still
     # joining is simply never reported. Wait for that by round-tripping a
     # throwaway message rather than sleeping a hopeful number of seconds.
-    for attempt in range(10):
+    for _attempt in range(10):
         warmup = alpaka.start_message(room=room.id, agent_id="warmup")
         try:
             first = events.get(timeout=3)
