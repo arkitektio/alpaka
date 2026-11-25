@@ -3,6 +3,7 @@
 Imported by ``alpaka/__init__``, so each class is marked whenever alpaka is.
 """
 
+from arkitekt_spec.actions import AssignWidgetInput
 from arkitekt_spec.declare.structures.declare import structure
 from arkitekt_spec.declare.widgets import SearchWidget
 
@@ -17,7 +18,7 @@ from alpaka.api.schema import (
 )
 
 
-def _search(query: object) -> SearchWidget:
+def _search(query: object) -> AssignWidgetInput:
     """The widget that picks one of these out of the deployment."""
     return SearchWidget(query=query.Meta.document, ward="alpaka")  # type: ignore[attr-defined]
 
