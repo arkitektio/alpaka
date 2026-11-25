@@ -1,7 +1,4 @@
 from .alpaka import Alpaka
-
-# The service is declared with arkitekt-spec, a core dependency: it is always there.
-from .arkitekt import alpaka as alpaka_service
 from .streaming import RoomStream, stream_into_room
 
 try:
@@ -14,8 +11,10 @@ __all__ = [
     "Alpaka",
     "RoomStream",
     "stream_into_room",
-    "alpaka_service",
     "AlpakaEndpoint",
     "build_openai",
     "build_async_openai",
 ]
+
+# Marks every type alpaka sends by id, so an app using `Alpaka` finds them.
+from . import structures as _structures  # noqa: E402, F401

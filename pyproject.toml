@@ -11,7 +11,7 @@ dependencies = [
     "rath>=4.1.1",
     "websockets>=15.0.1",
     # The service and structures are declared with arkitekt-spec (5.0: a service reads its scopes off its client).
-    "arkitekt-spec>=12.9",
+    "arkitekt-spec>=14",
     # The service wiring (Alias, Require, FaktsAuthLink); it came through rekuest before.
     "fakts>=6.1",
 ]
@@ -19,9 +19,7 @@ dependencies = [
 [project.optional-dependencies]
 # The tunnel (alpaka.openai()/aopenai()/get_endpoint()): native openai SDK
 # pointed at the server's OpenAI-compatible endpoint, resolved via fakts.
-# The arkitekt integration (alpaka.arkitekt) has no extra of
-# its own: arkitekt depends on alpaka and brings fakts/rekuest itself —
-# the guarded imports in __init__ light up when it is installed alongside.
+# The `@client` declaration and structures (alpaka.structures) need no extra.
 openai = ["openai>=1.30", "httpx>=0.27", "fakts>=6.1"]
 
 

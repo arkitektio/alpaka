@@ -26,14 +26,13 @@ Every alpaka operation is a method of the `Alpaka` client, in a blocking and an
 
 ### In an arkitekt app
 
-The client is injected by annotation. Add the service to your app and ask for
-`alpaka: Alpaka`:
+The client is injected by annotation: ask for `alpaka: Alpaka`.
 
 ```python
 from arkitekt import App, run
-from alpaka import Alpaka, alpaka_service
+from alpaka import Alpaka
 
-app = App("summarize", "0.1.0", services=[alpaka_service])
+app = App("summarize", "0.1.0")
 
 
 @app.action
@@ -57,10 +56,10 @@ directly.
 ### From a script
 
 ```python
-from arkitekt import easy
-from alpaka import alpaka_service
+from arkitekt import connect
+from alpaka import Alpaka
 
-with easy("chat", alpaka_service) as alpaka:
+with connect(Alpaka) as alpaka:
     response = alpaka.openai.chat.completions.create(
         model="alpaka/default",  # or "openrouter/gpt-4", "ollama/llama3", a registry id...
         messages=[{"role": "user", "content": "Hello!"}],
@@ -71,7 +70,7 @@ with easy("chat", alpaka_service) as alpaka:
 ```
 
 The client builds the SDK client once, on first use, from the endpoint and
-token loader its service gave it. Auth tokens are re-read on every request, so
+token loader it was built with. Auth tokens are re-read on every request, so
 long-running sessions survive token expiry. For SDK options of your own,
 `build_openai(alpaka.llm_url, alpaka.tokens, max_retries=7)` (and
 `build_async_openai`, both importable from `alpaka`) builds a fresh one the same way.
@@ -96,10 +95,10 @@ you have a stream of tokens, forward it into the room and every subscriber sees
 it grow.
 
 ```python
-from arkitekt import aeasy
-from alpaka import alpaka_service, stream_into_room
+from arkitekt import connect
+from alpaka import Alpaka, stream_into_room
 
-async with aeasy("chat", alpaka_service) as alpaka:
+async with connect(Alpaka) as alpaka:
     room = await alpaka.acreate_room(title="Demo")
     completion = await alpaka.aopenai.chat.completions.create(
         model="alpaka/default",

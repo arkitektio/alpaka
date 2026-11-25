@@ -1,10 +1,14 @@
 """The base client for alpaka"""
 
+import os
 import ssl
 from collections.abc import AsyncGenerator, Generator
 from types import TracebackType
-from typing import TYPE_CHECKING, Any, TypeVar
+from typing import TYPE_CHECKING, Annotated, Any, Self, TypeVar
 
+from arkitekt_spec.declare.client import client
+from arkitekt_spec.declare.tested import tested_against
+from arkitekt_spec.declare.wiring import Alias, Require, TokenLoader
 from koil import unkoil, unkoil_gen
 from koil.composition import Composition
 from pydantic import Field, PrivateAttr
@@ -24,7 +28,21 @@ if TYPE_CHECKING:
 
 AlpakaT = TypeVar("AlpakaT", bound="Alpaka")
 
+TESTED = tested_against("alpaka")
+"""The alpaka server this release wants: the one its release job tested it against."""
 
+_API = os.path.join(os.path.dirname(__file__), "api")
+ALPAKA = Require(
+    "live.arkitekt.alpaka",
+    "Where the models this app can prompt are served",
+    version=TESTED,
+)
+
+
+@client(
+    schema=os.path.join(_API, "schema.graphql"),
+    turms=os.path.join(_API, "project.json"),
+)
 class Alpaka(Composition, AlpakaApi):
     """Alpaka
 
@@ -37,7 +55,7 @@ class Alpaka(Composition, AlpakaApi):
     handed their app's client.
 
     The LLM tunnel is the client's too: it holds the OpenAI-compatible endpoint
-    and the token loader the service built it with, and builds the ``openai``
+    and the token loader it was built with, and builds the ``openai``
     SDK client once, on first use of :attr:`openai` / :attr:`aopenai`.
     """
 
@@ -77,6 +95,19 @@ class Alpaka(Composition, AlpakaApi):
 
     _openai: "OpenAI | None" = PrivateAttr(default=None)
     _aopenai: "AsyncOpenAI | None" = PrivateAttr(default=None)
+
+    @classmethod
+    def from_fakts(cls, alpaka: Annotated[Alias, ALPAKA], tokens: TokenLoader) -> Self:
+        """Alpaka: its GraphQL API and the ``/llm/v1`` tunnel, both behind ``alpaka``."""
+        from alpaka.connect import alpaka_rath
+
+        return cls(
+            llm_url=alpaka.to_http_path("/llm/v1"),
+            tokens=tokens,
+            proxy=alpaka.proxy,
+            ssl_context=alpaka.ssl_context() if alpaka.is_pinned() else None,
+            rath=alpaka_rath(alpaka, tokens),
+        )
 
     async def __aenter__(self: AlpakaT) -> AlpakaT:
         """Connect the rath, and nothing else.
